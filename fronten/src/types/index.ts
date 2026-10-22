@@ -1,0 +1,319 @@
+export type NavigationTab = 
+  | 'overview'
+  | 'cpu'
+  | 'memory'
+  | 'disk'
+  | 'app-logs'
+  | 'app-agent'
+  | 'alerts'
+  | 'history';
+
+export interface LogStreamStatus {
+  connected: boolean;
+  app_service?: string;
+  last_log_received_at?: string | null;
+  buffer_size?: number;
+  mode?: string;
+}
+
+export interface ApplicationSession {
+  id: string;
+  name: string;
+  messages: Array<{
+    role: 'user' | 'agent';
+    content: string;
+    isError?: boolean;
+    timestamp?: string;
+  }>;
+}
+
+export interface ApplicationAgentResponse {
+  response: string;
+  file_name?: string;
+  analyzed_logs?: string;
+}
+
+export interface RemediationAuditLog {
+  timestamp: string;
+  action_id: string;
+  operator: string;
+  action_type: string;
+  target: string;
+  command: string;
+  decision?: 'APPROVED' | 'REJECTED' | string;
+  status: 'EXECUTED' | 'REJECTED' | 'FAILED' | 'SUCCESS' | string;
+  exit_code?: number;
+  operator_note?: string;
+  output?: string;
+  stdout?: string;
+  stderr?: string;
+}
+
+export type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export type IncidentType = 
+  | 'MISSING_PARTITION_FILTER'
+  | 'HIGH_CARDINALITY_JOIN'
+  | 'SLOT_CONTENTION';
+
+export type JoinFailureMode = 
+  | 'KEY_SKEW'
+  | 'FAN_OUT'
+  | 'SHUFFLE_VOLUME'
+  | 'UNCONSTRAINED_JOIN';
+
+export type IncidentConfidence = 
+  | 'PATTERN_ONLY'
+  | 'PROBABLE'
+  | 'CONFIRMED'
+  | 'NOT_CONFIRMED'
+  | 'INCONCLUSIVE'
+  | 'NOT_APPLICABLE';
+
+export type IncidentStatus = 
+  | 'DETECTED'
+  | 'NOT_DETECTED'
+  | 'NOT_APPLICABLE'
+  | 'DIAGNOSING'
+  | 'DIAGNOSED'
+  | 'REMEDIATING'
+  | 'REMEDIATION_DRAFTED'
+  | 'ESCALATED'
+  | 'FAILED';
+
+export type ActionCategory = 
+  | 'RECOMMENDATION_ONLY'
+  | 'HUMAN_APPROVAL'
+  | 'AUTO_FIX';
+
+export interface HealthCheckResponse {
+  status: string;
+  service: string;
+}
+
+export interface MetricSnapshot {
+  timestamp: string;
+  cpu_percent: number;
+  memory_percent: number;
+  memory_used_gb: number;
+  memory_total_gb: number;
+  disk_percent: number;
+  disk_used_gb: number;
+  disk_total_gb: number;
+}
+
+export interface ProcessItem {
+  pid?: number;
+  name?: string;
+  process_name?: string;
+  cpu_percent?: number;
+  memory_percent?: number;
+  memory_rss_mb?: number;
+  user?: string;
+  status?: string;
+}
+
+export interface ServiceItem {
+  service_name?: string;
+  active_state?: string;
+  memory_percent?: number;
+  memory_rss_mb?: number;
+}
+
+export interface CPUDetectionResult {
+  detected: boolean;
+  incident_type?: IncidentType | string;
+  status?: IncidentStatus | string;
+  diagnosis_status?: string;
+  severity?: Severity | string;
+  confidence?: number;
+  summary: string;
+  root_cause?: string;
+  explanation?: string;
+  detected_issue?: string;
+  evidence?: Record<string, unknown>;
+  reasons?: string[];
+  safety_notes?: string[];
+  crossed_thresholds?: number[];
+  escalation_required?: boolean;
+  escalation_reason?: string;
+  recommended_next_step?: string;
+}
+
+export interface CPURemediationResult {
+  action_category?: ActionCategory | string;
+  status?: IncidentStatus | string;
+  action_taken?: string;
+  action_required: string;
+  preventive_guardrail?: string;
+  recommended_query?: string;
+  executed?: boolean;
+  verification_required?: boolean;
+  verification_result?: string;
+  workflow_id?: string;
+  task_id?: string;
+  command?: string;
+  remediation_rationale?: string;
+  alternatives?: RemediationAlternativeOption[];
+}
+
+export interface RemediationAlternativeOption {
+  action_type: 'KILL_PROCESS' | 'RESTART_SERVICE' | 'RENICE_PROCESS' | string;
+  label: string;
+  command: string;
+  target_identifier: string;
+  signal?: number;
+  description?: string;
+}
+
+export interface RemediationPlanItem {
+  plan_id?: string;
+  service_name?: string;
+  severity?: string;
+  root_cause?: string;
+  action_required?: string;
+  preventive_guardrail?: string;
+  memory_usage_percent?: number;
+  command?: string;
+  remediation_rationale?: string;
+  target_identifier?: string;
+  action_type?: 'KILL_PROCESS' | 'RESTART_SERVICE' | 'RENICE_PROCESS' | string;
+  alternatives?: RemediationAlternativeOption[];
+}
+
+export interface AgentAnalysisResponse {
+  success?: boolean;
+  agent?: string;
+  agent_name?: string;
+  resource?: string;
+  hostname?: string;
+  service_name?: string;
+  timestamp?: string;
+  telemetry_type?: 'cpu' | 'disk' | 'memory';
+  current_usage_percent?: number;
+  peak_usage_percent?: number;
+  highest_threshold_crossed?: number | null;
+  highest_threshold_exceeded?: string | null;
+  alert_dispatched?: boolean;
+  alert_recipient?: string;
+  total_records_analyzed?: number;
+  data_source?: string;
+  source_url?: string;
+  cpu_utilization_analysis?: string;
+  disk_utilization_analysis?: string;
+  memory_utilization_analysis?: string;
+  detection?: CPUDetectionResult;
+  diagnosis?: {
+    root_cause?: string;
+    explanation?: string;
+    severity?: string;
+    diagnosis_status?: string;
+  };
+  remediation?: CPURemediationResult;
+  remediation_plans?: RemediationPlanItem[];
+  remediation_points?: string[];
+  remediation_steps?: string[];
+  memory_stats?: {
+    service_name?: string;
+    hostname?: string;
+    current_percent?: number;
+    peak_percent?: number;
+    used_gb?: number;
+    available_gb?: number;
+    total_gb?: number;
+    threshold_crossed?: number | null;
+    primary_process?: ProcessItem;
+  };
+  disk_stats?: {
+    hostname?: string;
+    current_percent?: number;
+    peak_percent?: number;
+    used_gb?: number;
+    free_gb?: number;
+    total_gb?: number;
+    threshold_crossed?: number | null;
+  };
+  high_memory_processes?: ProcessItem[];
+  high_memory_services?: ServiceItem[];
+  top_processes?: ProcessItem[];
+  service_logs?: Array<Record<string, unknown>>;
+  records?: Array<Record<string, unknown>>;
+  metrics_analyzed?: {
+    current_value?: number;
+    threshold_50?: boolean;
+    threshold_70?: boolean;
+    threshold_100?: boolean;
+    history_samples?: number;
+  };
+  raw_findings?: string[];
+}
+
+
+
+export interface EmailAlertRecord {
+  id?: number;
+  timestamp: string;
+  recipient: string;
+  subject: string;
+  threshold?: number;
+  threshold_level: string;
+  metric_name: string;
+  value: number;
+  status: 'SENT' | 'FAILED' | 'QUEUED' | string;
+  details?: string;
+}
+
+export interface EmailAlertsResponse {
+  total_alerts: number;
+  alerts: EmailAlertRecord[];
+  filter_thresholds?: number[];
+}
+
+export interface AlertThresholdRule {
+  id: number;
+  resource: 'CPU' | 'RAM' | 'Disk' | 'ALL' | string;
+  threshold_percent: number;
+  severity: Severity | string;
+  recipient?: string;
+  enabled: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ThresholdRulesResponse {
+  success: boolean;
+  rules: AlertThresholdRule[];
+  distinct_thresholds: number[];
+}
+
+
+
+export interface MetricsFetchResult {
+  success: boolean;
+  message: string;
+  saved_file: string;
+  filename: string;
+  records_count: number;
+}
+
+export interface RemediationDecisionPayload {
+  action_id: string;
+  decision: 'APPROVE' | 'REJECT';
+  action_type: 'KILL_PROCESS' | 'RESTART_SERVICE' | 'RENICE_PROCESS' | string;
+  target_identifier: string;
+  process_name?: string;
+  signal?: number;
+  command?: string;
+  operator_email?: string;
+  operator_note?: string;
+}
+
+export interface RemediationDecisionResult {
+  success: boolean;
+  status: 'EXECUTED' | 'REJECTED' | 'FAILED';
+  action_id: string;
+  action_type?: string;
+  command?: string;
+  details?: Record<string, any>;
+  message: string;
+}

@@ -1,0 +1,49 @@
+import json
+import logging
+from typing import Any, Dict, Optional
+from fastapi import APIRouter, HTTPException, Query
+
+from tools.system_agent_pipeline import process_system_disk_metrics
+from tools.metrics_fetcher import CURRENT_METRICS_API_URL, HISTORY_API_URL, fetch_current_metrics, load_configured_metrics, store_metrics_json
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/api/disk", tags=["Disk Agent (Direct 3-Subagent Pipeline)"])
+
+DEFAULT_HISTORY_URL = HISTORY_API_URL
+
+
+@router.api_route("/analyze", methods=["GET", "POST"])
+def analyze_disk_latest_history():
+    """
+    Direct Disk Agent Endpoint:
+    1. Ingests live telemetry directly from remote VM endpoints (/api/metrics, /api/history, /api/processes, /api/service-logs).
+    2. Runs LLM-powered Detection -> Diagnosis -> Remediation on live Disk telemetry.
+    3. Evaluates highest crossed operational threshold (70%, 90%, 100%).
+    4. Dispatches alert email if threshold exceeded.
+    5. Returns detection, root cause, remediation, and individual remediation plans.
+    """
+    try:
+        logger.info(f"📥 [Disk Agent] /api/disk/analyze request received! Fetching live VM telemetry from {CURRENT_METRICS_API_URL}...")
+        result = process_system_disk_metrics(source=None)
+        result["source_url"] = CURRENT_METRICS_API_URL
+        result["source_file"] = None
+        logger.info(f"📤 [Disk Agent] Completed! Host: {result.get('hostname')} | Current Disk: {result.get('current_usage_percent')}% | Records: {result.get('total_records_analyzed')}")
+        return result
+    except Exception as exc:
+        if isinstance(exc, HTTPException):
+            raise
+        logger.error(f"Disk Agent error: {exc}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Disk Agent failed to process telemetry: {str(exc)}",
+        )
+
+
+@router.get("/history")
+async def analyze_disk_history(force_fetch: bool = Query(False)):
+    """Live telemetry history analysis endpoint for Disk."""
+    result = process_system_disk_metrics(source=None)
+    result["source_url"] = CURRENT_METRICS_API_URL
+    result["source_file"] = None
+    return result
