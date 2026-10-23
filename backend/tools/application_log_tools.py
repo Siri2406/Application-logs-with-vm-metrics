@@ -26,8 +26,16 @@ def get_recent_application_logs(minutes: Optional[int] = 10, source: Optional[st
         from services.gcp_log_stream import gcp_log_stream_service
         return gcp_log_stream_service.get_buffered_logs()
 
-    # Default to Azure
-    return log_stream_service.get_buffered_logs()
+    # Default to Azure live stream or saved azure_logs
+    live_logs = log_stream_service.get_buffered_logs()
+    if live_logs and live_logs.strip():
+        return live_logs
+
+    from pathlib import Path
+    saved_log = Path(__file__).resolve().parent.parent / "azure_logs" / "azure_live_application_logs.log"
+    if saved_log.exists():
+        return saved_log.read_text(encoding="utf-8")
+    return ""
 
 
 # ---------------------------------------------------------------------------

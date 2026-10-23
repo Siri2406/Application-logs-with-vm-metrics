@@ -520,7 +520,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = () => {
                             <Terminal className="h-3.5 w-3.5 text-emerald-400" />
                             Remote VM Execution Output (Exit Code: {log.exit_code ?? (isApproved ? 0 : -1)})
                           </span>
-                          <span className="text-[10px] font-mono text-muted-foreground">Host: 20.15.164.79</span>
+                          <span className="text-[10px] font-mono text-muted-foreground">Host: miraai-auditsphere-dev</span>
                         </div>
                         <div className="rounded border border-[#1E293B] bg-[#050811] p-3 font-mono text-xs text-slate-200 overflow-x-auto max-h-48 scrollbar-thin">
                           {log.stderr && (

@@ -1,6 +1,6 @@
 """
 CPU Telemetry Preprocessor & Segregation Script
-Segregates CPU-only metrics from raw multi-resource system telemetry (e.g. from http://20.15.164.79:8080/api/history)
+Segregates CPU-only metrics from raw multi-resource system telemetry (e.g. from Azure Monitor & App Service)
 and formulates individual remediation plans for each detected CPU anomaly/bottleneck.
 """
 

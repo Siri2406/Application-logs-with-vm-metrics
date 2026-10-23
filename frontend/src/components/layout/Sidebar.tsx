@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Bell,
+  Bot,
   ChevronLeft,
   ChevronRight,
   Cloud,
@@ -10,6 +11,7 @@ import {
   Layers,
   LayoutDashboard,
   Settings,
+  Terminal,
 } from 'lucide-react';
 import type { NavigationTab } from '../../types';
 
@@ -35,6 +37,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: LayoutDashboard,
       badge: null,
       isActive: isDashboardActive,
+    },
+    {
+      id: 'app-logs' as NavigationTab,
+      label: 'Application Log Monitoring',
+      icon: Terminal,
+      badge: 'Live',
+      badgeColor: 'bg-emerald-500 text-white',
+      isActive: activeTab === 'app-logs',
+    },
+    {
+      id: 'app-agent' as NavigationTab,
+      label: 'Agent Diagnosis',
+      icon: Bot,
+      badge: null,
+      isActive: activeTab === 'app-agent',
     },
     {
       id: 'cpu' as NavigationTab,

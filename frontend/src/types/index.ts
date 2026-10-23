@@ -81,6 +81,7 @@ export interface ApplicationSession {
     content: string;
     isError?: boolean;
     timestamp?: string;
+    analyzedLogs?: string;
   }>;
 }
 
@@ -293,6 +294,7 @@ export interface AgentAnalysisResponse {
   high_memory_processes?: ProcessItem[];
   high_memory_services?: ServiceItem[];
   top_processes?: ProcessItem[];
+  top_15_processes?: ProcessItem[];
   service_logs?: Array<Record<string, unknown>>;
   records?: Array<Record<string, unknown>>;
   metrics_analyzed?: {

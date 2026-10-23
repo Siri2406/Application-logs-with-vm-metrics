@@ -195,7 +195,9 @@ export const CpuScreen: React.FC<CpuScreenProps> = ({
           <div className="flex items-center gap-2">
             <Badge
               variant={
-                currentUsageVal >= 100
+                !data
+                  ? 'neutral'
+                  : currentUsageVal >= 100
                   ? 'destructive'
                   : currentUsageVal >= 70
                   ? 'destructive'
@@ -206,7 +208,9 @@ export const CpuScreen: React.FC<CpuScreenProps> = ({
               size="md"
               dot
             >
-              {currentUsageVal >= 100
+              {!data
+                ? 'AWAITING RUN'
+                : currentUsageVal >= 100
                 ? '100% SATURATED'
                 : currentUsageVal >= 70
                 ? '70% CRITICAL BREACH'

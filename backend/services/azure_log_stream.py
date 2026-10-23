@@ -21,6 +21,19 @@ class AzureLogStreamService:
         if settings.LOG_SOURCE == "mock":
             logger.info("Initializing in mock mode. Will not connect to Azure.")
 
+    @staticmethod
+    def is_ignorable_banner(line: str) -> bool:
+        low = line.lower().strip()
+        if not low:
+            return True
+        if "welcome, you are now connected" in low:
+            return True
+        if "connected to log-streaming service" in low:
+            return True
+        if "default timeout is 2 hours" in low:
+            return True
+        return False
+
     def add_listener(self, queue: asyncio.Queue):
         self.listeners.append(queue)
 
@@ -40,17 +53,72 @@ class AzureLogStreamService:
             "connected": self.connected,
             "app_service": settings.AZURE_APP_SERVICE_NAME if settings.LOG_SOURCE == "azure" else "mock",
             "last_log_received_at": self.last_log_received_at.isoformat() if self.last_log_received_at else None,
-            "buffer_size": len(self.buffer),
+            "buffer_size": len([l for l in self.buffer if not self.is_ignorable_banner(l)]),
             "mode": settings.LOG_SOURCE,
         }
 
+    def fetch_recent_logs_from_azure(self, limit: int = 50) -> str:
+        """
+        Fetches the latest real live application and container logs directly
+        from Azure App Service Kudu VFS storage (/api/vfs/LogFiles/).
+        """
+        if not settings.AZURE_APP_SERVICE_NAME or not settings.KUDU_USERNAME or not settings.KUDU_PASSWORD:
+            return ""
+        try:
+            import json
+            import urllib.request
+            basic = base64.b64encode(f"{settings.KUDU_USERNAME}:{settings.KUDU_PASSWORD}".encode()).decode()
+            headers = {"Authorization": f"Basic {basic}"}
+            vfs_url = f"https://{settings.AZURE_APP_SERVICE_NAME}.scm.azurewebsites.net/api/vfs/LogFiles/"
+            req = urllib.request.Request(vfs_url, headers=headers)
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                items = json.loads(resp.read().decode())
+
+            log_files = [i for i in items if i.get("name", "").endswith(".log")]
+            if not log_files:
+                return ""
+            log_files.sort(key=lambda x: str(x.get("mtime") or ""), reverse=True)
+            latest = log_files[0]
+
+            req2 = urllib.request.Request(latest["href"], headers=headers)
+            with urllib.request.urlopen(req2, timeout=10) as resp2:
+                content = resp2.read().decode("utf-8", errors="ignore")
+
+            lines = [l.strip() for l in content.splitlines() if l.strip() and not self.is_ignorable_banner(l)]
+            return "\n".join(lines[-limit:])
+        except Exception as e:
+            logger.warning(f"Error fetching live logs from Azure VFS LogFiles: {e}")
+            return ""
+
     def get_buffered_logs(self) -> str:
-        return "\n".join(self.buffer)
+        valid = [l for l in self.buffer if not self.is_ignorable_banner(l)]
+        if valid:
+            return "\n".join(valid)
+        live = self.fetch_recent_logs_from_azure(50)
+        if live:
+            for l in live.splitlines():
+                if l.strip() and not self.is_ignorable_banner(l):
+                    self.buffer.append(l.strip())
+        return live
+
+    async def _preseed_logs(self):
+        try:
+            initial_logs = await asyncio.to_thread(self.fetch_recent_logs_from_azure, 50)
+            if initial_logs:
+                for line in initial_logs.splitlines():
+                    if line.strip() and not self.is_ignorable_banner(line):
+                        self.buffer.append(line.strip())
+        except Exception as exc:
+            logger.warning(f"Could not pre-seed Azure logs: {exc}")
 
     async def start(self):
         if settings.LOG_SOURCE == "mock":
             self.connected = True
             return
+
+        # Pre-seed buffer asynchronously in background so server startup is instantaneous
+        asyncio.create_task(self._preseed_logs())
+
         self._stop_event.clear()
         self._streaming_task = asyncio.create_task(self._run_stream())
         logger.info("Started Azure log stream background task.")
@@ -74,8 +142,9 @@ class AzureLogStreamService:
             except Exception as e:
                 self.connected = False
                 logger.error(f"Log stream error: {e}")
-                logger.info(f"Reconnecting in {settings.LOG_STREAM_RETRY_SECONDS}s...")
-                await asyncio.sleep(settings.LOG_STREAM_RETRY_SECONDS)
+                retry_sec = max(settings.LOG_STREAM_RETRY_SECONDS, 10)
+                logger.info(f"Reconnecting in {retry_sec}s...")
+                await asyncio.sleep(retry_sec)
 
     async def _connect_and_stream(self):
         if not settings.AZURE_APP_SERVICE_NAME:
@@ -110,6 +179,9 @@ class AzureLogStreamService:
                         await self._process_log_line(line)
 
     async def _process_log_line(self, line: str):
+        # Ignore Kudu welcome greeting or connection status lines
+        if self.is_ignorable_banner(line):
+            return
         self.last_log_received_at = datetime.datetime.now(datetime.timezone.utc)
         self.buffer.append(line)
         await self.broadcast(line)

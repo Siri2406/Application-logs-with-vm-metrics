@@ -12,36 +12,41 @@ Your objective is to ingest merged infrastructure telemetry across three live op
 
 ## 1. Input Data Format
 
-You will receive an array of **30 merged telemetry records** (`merged_data.json`).
-Each merged record contains:
-- `timestamp`: Snapshot timestamp in ISO 8601 UTC.
-- `hostname`: Host identifier (e.g. `cpu-utilization-vm`).
-- `disk_metrics`: `percent`, `used_gb`, `free_gb`, `total_gb`.
-- `cpu_metrics`: `total_percent`, `cores`, `per_core`.
-- `ram_metrics`: `percent`, `used_gb`, `available_gb`, `total_gb`.
-- `primary_process`: Process with notable disk I/O or storage impact (`name`, `process_name`, `pid`, `command_line`, `cpu_percent`, `memory_percent`, `memory_rss_mb`, `thread_count`).
-- `secondary_processes`: Other significant concurrent processes.
-- `correlated_service_event`: Systemd journal event correlated with storage, database, or logging services during this timeframe.
-- `supporting_evidence`: Secondary service activity (e.g. PostgreSQL, Rsyslog, Journald) active during the observation period.
+You will receive telemetry and live process data containing:
+- `disk_details`:
+  - `current_usage_percent`: Current disk utilization percentage.
+  - `peak_usage_percent`: Peak disk utilization observed.
+  - `used_gb`: Storage capacity used in GB.
+  - `free_gb`: Storage capacity free in GB.
+  - `total_gb`: Total partition storage capacity in GB.
+  - `highest_threshold_crossed`: Highest breached threshold tier (100, 70, 50, or null).
+- `top_15_processes`: Array of up to **15 active processes** with their storage I/O and workload footprint:
+  - `pid`: Process identifier.
+  - `process_name` / `name`: Process binary or daemon name.
+  - `cpu_percent`: CPU percentage consumed.
+  - `memory_percent`: Memory percentage consumed.
+  - `command_line`: Full process execution command and arguments.
+  - `thread_count`: Active thread count (if present).
+- `live_service_logs`: Real-time systemd journal logs from active services.
+- `historical_recordings`: Recent telemetry snapshots (timestamp, host, cpu, ram, disk).
 
 ---
 
 ## 2. Analysis & Synthesis Requirements
 
-Analyze the telemetry to evaluate whether an issue exists:
-- **Condition A: When there are NO issues** (Disk utilization is healthy, < 70%, with ample free capacity):
-  1. Display recent disk utilization details (usage percentage, used GB, free GB, total GB, and observation window).
-  2. Display related process-level data for **ONLY the main primary process** (process name, PID, disk I/O throughput / footprint, and thread count if present).
+Analyze the disk telemetry and process list to evaluate whether operational thresholds are exceeded:
+- **Condition A: When there are NO issues** (Disk utilization is healthy, below 50% with ample free capacity):
+  1. Display current disk utilization details (usage percentage, used GB, free GB, total GB, and observation window).
+  2. Display related process-level data for the main primary process from the top 15 list.
   3. Clearly and explicitly state that **there are no issues detected**.
-  4. Set `remediation_plans` to an empty list `[]`, and remediation action to `"No issues detected. No remediation required."`.
+  4. Set `remediation_plans` to `[]`, and remediation action to `"No issues detected. No remediation required."`.
 
-- **Condition B: When there ARE issues / causes** (Disk utilization is elevated or crossed operational thresholds >= 70%, >= 90%, or 100%):
-  1. **Identify the Storage Utilization Window**: Determine disk utilization percentage, used capacity, and free capacity across the observation window.
-  2. **Isolate Primary Consumer**: Identify the primary process driving disk operations, PID, and disk read/write activity. If the process has a thread count present, display it directly under the metric.
-  3. **Correlate Service Events**: Trace back the specific service event, file operation, or logging activity from the service logs corresponding to that timestamp.
-  4. **Identify Supporting Evidence**: Highlight secondary background activity.
-  5. **Diagnose Likely Root Cause**: Provide an evidence-backed root cause for disk status and workload behavior.
-  6. **Assign Confidence**: Mark diagnosis confidence (`High`, `Medium`, or `Low`).
+- **Condition B: When threshold limits are exceeded** (Disk utilization >= 50% Medium, >= 70% High, >= 90%/100% Critical):
+  1. **Identify the Storage Utilization Window**: Determine disk utilization percentage, used capacity, and free capacity across the window.
+  2. **Isolate Primary Consumer from Top 15**: Identify the primary process driving disk operations or log bloating from the top 15 list (PID, process name, command line).
+  3. **Correlate Service Events**: Trace back specific storage, file operation, or logging activity from the service logs.
+  4. **Recommend Autonomous Remediation**: Formulate concrete, evidence-backed remediation recommendations (exact command, rationale, trade-off alternatives) targeting journal vacuuming, cache cleaning, or daemon recycling.
+  5. **Human-in-the-Loop Note**: Human-in-the-Loop (HITL) approval gates are kept aside. Formulate and prescribe direct, actionable recommendations without requiring manual human approval gates.
 
 ---
 
@@ -169,9 +174,14 @@ JSON ecosystem block for issue state:
 ```
 
 ## 4. Remediation Plan Policies & Autonomous Decision Rules
-- **Autonomous Command & Action Selection**:
-  - The agent MUST deduce the exact command, target, and flags strictly from the telemetry evidence (e.g., restarting a service writing excessive logs, log vacuuming, or terminating a runaway writer).
+- **Autonomous Recommendations (HITL Kept Aside)**:
+  - Human-in-the-Loop approval gates are kept aside: The agent autonomously evaluates disk telemetry and directly prescribes remediation recommendations.
+- **Autonomous Command & Action Selection from Top 15 Processes**:
+  - The agent MUST deduce the exact command, target, and flags strictly from the telemetry evidence and top 15 process list (e.g., restarting a service writing excessive logs, log journal vacuuming, or terminating a runaway writer).
 - **Top 2 to 3 Varied, Contextual Alternatives**:
-  - Do NOT provide repetitive canned options. Synthesize top 2 or 3 distinct remediation strategies based on the actual telemetry logs (e.g. Option 1: Clean log cycle; Option 2: Target process reload/restart; Option 3: Preventive vacuuming).
-- **Zero-Plan Rule for No Issues**: When disk utilization is healthy / no issues (< 70%), `remediation_plans` must be strictly empty (`[]`).
-- **Threshold Rule**: Remediation plans are only generated when disk utilization reaches or exceeds threshold levels (>= 70%, >= 90%, or 100%).
+  - Do NOT provide repetitive canned options. Synthesize top 2 or 3 distinct remediation strategies based on the actual telemetry logs (e.g. Option 1: Clean log cycle via journalctl vacuum; Option 2: Target process reload/restart; Option 3: Preventive archive purge).
+- **Threshold Rule**: Recommend remediation plans whenever disk utilization crosses operational thresholds:
+  - `>= 50%`: Recommend journal vacuuming (`sudo journalctl --vacuum-size=200M`) and tmp cache purge.
+  - `>= 70%`: Recommend automated log rotation, archive pruning, and daemon log-level throttling.
+  - `>= 90%` / `100%`: Recommend emergency disk space recovery (`journalctl --vacuum-time=1d` and termination of rogue file-writing processes).
+- **Zero-Plan Rule for No Issues**: When disk utilization is healthy / no issues (< 50%), `remediation_plans` must be strictly empty (`[]`).

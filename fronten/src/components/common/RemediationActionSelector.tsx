@@ -192,7 +192,7 @@ export const RemediationActionSelector: React.FC<RemediationActionSelectorProps>
             <Terminal className="h-3.5 w-3.5" /> Selected SSH Command ({selectedOption.label})
           </span>
           <span className="text-[10px] text-muted-foreground uppercase">
-            Host: 20.15.164.79
+            Host: miraai-auditsphere-dev
           </span>
         </div>
         <div className="flex items-center gap-2 text-[#38BDF8] select-all bg-black/40 px-2.5 py-1.5 rounded border border-white/5 overflow-x-auto">
@@ -201,15 +201,18 @@ export const RemediationActionSelector: React.FC<RemediationActionSelectorProps>
         </div>
       </div>
 
-      {/* Human-in-the-Loop Approval & Execution Bar */}
+      {/* Autonomous Recommendation & Host Execution Bar (HITL Kept Aside) */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-            <Zap className="h-3 w-3 text-primary" /> HITL Gate:
+            <Zap className="h-3 w-3 text-primary" /> Mode:
           </span>
-          {status === 'REJECTED' && (
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground">
-              <XCircle className="h-3.5 w-3.5" /> Rejected by Operator
+          <span className="inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+            <Sparkles className="h-3 w-3" /> Autonomous Agent Recommendation
+          </span>
+          {status === 'EXECUTED' && (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-500">
+              <CheckCircle2 className="h-3.5 w-3.5" /> Applied on VM
             </span>
           )}
           {status === 'FAILED' && (
@@ -217,51 +220,25 @@ export const RemediationActionSelector: React.FC<RemediationActionSelectorProps>
               <AlertTriangle className="h-3.5 w-3.5" /> Execution Failed
             </span>
           )}
-          {status === 'PENDING' && (
-            <span className="text-xs text-amber-500 font-medium">Approval Required</span>
-          )}
         </div>
 
         <div className="flex items-center gap-2">
-          {status !== 'REJECTED' && (
-            <>
-              <button
-                type="button"
-                onClick={() => onApprove(selectedOption)}
-                disabled={status === 'EXECUTING'}
-                className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--primary)] px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
-              >
-                {status === 'EXECUTING' ? (
-                  <>
-                    <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Executing {selectedOption.label}...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Approve & Execute ({selectedOption.badge})
-                  </>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={onReject}
-                disabled={status === 'EXECUTING'}
-                className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50 transition-all cursor-pointer"
-              >
-                <XCircle className="h-3.5 w-3.5 text-destructive/80" /> Decline
-              </button>
-            </>
-          )}
-
-          {status === 'REJECTED' && (
-            <button
-              type="button"
-              onClick={onReset}
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <RefreshCw className="h-3 w-3" /> Re-open proposal
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => onApprove(selectedOption)}
+            disabled={status === 'EXECUTING'}
+            className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--primary)] px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
+          >
+            {status === 'EXECUTING' ? (
+              <>
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Executing {selectedOption.label}...
+              </>
+            ) : (
+              <>
+                <Terminal className="h-3.5 w-3.5" /> Execute Recommended Action ({selectedOption.badge})
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>

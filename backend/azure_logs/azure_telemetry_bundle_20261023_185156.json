@@ -1,0 +1,1891 @@
+{
+  "timestamp": "20261023_185156",
+  "monitor_60": {
+    "status": "success",
+    "source": "azure_monitor",
+    "metrics": {
+      "CpuTime": {
+        "unit": "Seconds",
+        "latest": 240,
+        "points": [
+          {
+            "timestamp": "2026-10-23T12:21:00Z",
+            "value": 213.2
+          },
+          {
+            "timestamp": "2026-10-23T12:26:00Z",
+            "value": 216.6
+          },
+          {
+            "timestamp": "2026-10-23T12:31:00Z",
+            "value": 216.8
+          },
+          {
+            "timestamp": "2026-10-23T12:36:00Z",
+            "value": 202
+          },
+          {
+            "timestamp": "2026-10-23T12:41:00Z",
+            "value": 210.4
+          },
+          {
+            "timestamp": "2026-10-23T12:46:00Z",
+            "value": 222
+          },
+          {
+            "timestamp": "2026-10-23T12:51:00Z",
+            "value": 205.2
+          },
+          {
+            "timestamp": "2026-10-23T12:56:00Z",
+            "value": 205
+          },
+          {
+            "timestamp": "2026-10-23T13:01:00Z",
+            "value": 204.8
+          },
+          {
+            "timestamp": "2026-10-23T13:06:00Z",
+            "value": 203.4
+          },
+          {
+            "timestamp": "2026-10-23T13:11:00Z",
+            "value": 233.8
+          },
+          {
+            "timestamp": "2026-10-23T13:16:00Z",
+            "value": 240
+          }
+        ]
+      },
+      "AverageMemoryWorkingSet": {
+        "unit": "MB",
+        "latest": 26.26,
+        "points": [
+          {
+            "timestamp": "2026-10-23T12:21:00Z",
+            "value": 29.79
+          },
+          {
+            "timestamp": "2026-10-23T12:26:00Z",
+            "value": 29.26
+          },
+          {
+            "timestamp": "2026-10-23T12:31:00Z",
+            "value": 29.16
+          },
+          {
+            "timestamp": "2026-10-23T12:36:00Z",
+            "value": 29.06
+          },
+          {
+            "timestamp": "2026-10-23T12:41:00Z",
+            "value": 28.98
+          },
+          {
+            "timestamp": "2026-10-23T12:46:00Z",
+            "value": 27.16
+          },
+          {
+            "timestamp": "2026-10-23T12:51:00Z",
+            "value": 28.43
+          },
+          {
+            "timestamp": "2026-10-23T12:56:00Z",
+            "value": 29.02
+          },
+          {
+            "timestamp": "2026-10-23T13:01:00Z",
+            "value": 29.03
+          },
+          {
+            "timestamp": "2026-10-23T13:06:00Z",
+            "value": 28.05
+          },
+          {
+            "timestamp": "2026-10-23T13:11:00Z",
+            "value": 27.42
+          },
+          {
+            "timestamp": "2026-10-23T13:16:00Z",
+            "value": 26.26
+          }
+        ]
+      },
+      "MemoryWorkingSet": {
+        "unit": "MB",
+        "latest": 26.26,
+        "points": [
+          {
+            "timestamp": "2026-10-23T12:21:00Z",
+            "value": 29.79
+          },
+          {
+            "timestamp": "2026-10-23T12:26:00Z",
+            "value": 29.26
+          },
+          {
+            "timestamp": "2026-10-23T12:31:00Z",
+            "value": 29.16
+          },
+          {
+            "timestamp": "2026-10-23T12:36:00Z",
+            "value": 29.06
+          },
+          {
+            "timestamp": "2026-10-23T12:41:00Z",
+            "value": 28.98
+          },
+          {
+            "timestamp": "2026-10-23T12:46:00Z",
+            "value": 27.16
+          },
+          {
+            "timestamp": "2026-10-23T12:51:00Z",
+            "value": 28.43
+          },
+          {
+            "timestamp": "2026-10-23T12:56:00Z",
+            "value": 29.02
+          },
+          {
+            "timestamp": "2026-10-23T13:01:00Z",
+            "value": 29.03
+          },
+          {
+            "timestamp": "2026-10-23T13:06:00Z",
+            "value": 28.05
+          },
+          {
+            "timestamp": "2026-10-23T13:11:00Z",
+            "value": 27.42
+          },
+          {
+            "timestamp": "2026-10-23T13:16:00Z",
+            "value": 26.26
+          }
+        ]
+      },
+      "IoReadOperationsPerSecond": {
+        "unit": "BytesPerSecond",
+        "latest": 1,
+        "points": [
+          {
+            "timestamp": "2026-10-23T12:21:00Z",
+            "value": 0.5
+          },
+          {
+            "timestamp": "2026-10-23T12:26:00Z",
+            "value": 1
+          },
+          {
+            "timestamp": "2026-10-23T12:31:00Z",
+            "value": 0.5
+          },
+          {
+            "timestamp": "2026-10-23T12:36:00Z",
+            "value": 0.67
+          },
+          {
+            "timestamp": "2026-10-23T12:41:00Z",
+            "value": 1
+          },
+          {
+            "timestamp": "2026-10-23T12:46:00Z",
+            "value": 0.67
+          },
+          {
+            "timestamp": "2026-10-23T12:51:00Z",
+            "value": 1
+          },
+          {
+            "timestamp": "2026-10-23T12:56:00Z",
+            "value": 1.5
+          },
+          {
+            "timestamp": "2026-10-23T13:01:00Z",
+            "value": 0.67
+          },
+          {
+            "timestamp": "2026-10-23T13:06:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T13:11:00Z",
+            "value": 1.5
+          },
+          {
+            "timestamp": "2026-10-23T13:16:00Z",
+            "value": 1
+          }
+        ]
+      },
+      "IoWriteOperationsPerSecond": {
+        "unit": "BytesPerSecond",
+        "latest": 0,
+        "points": [
+          {
+            "timestamp": "2026-10-23T12:21:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:26:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:31:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:36:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:41:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:46:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:51:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:56:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T13:01:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T13:06:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T13:11:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T13:16:00Z",
+            "value": 0
+          }
+        ]
+      },
+      "BytesReceived": {
+        "unit": "Bytes",
+        "latest": 2412.75,
+        "points": [
+          {
+            "timestamp": "2026-10-23T12:21:00Z",
+            "value": 2682.5
+          },
+          {
+            "timestamp": "2026-10-23T12:26:00Z",
+            "value": 4291
+          },
+          {
+            "timestamp": "2026-10-23T12:31:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:36:00Z",
+            "value": 4021.25
+          },
+          {
+            "timestamp": "2026-10-23T12:41:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:46:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:51:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:56:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T13:01:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T13:06:00Z",
+            "value": 1069
+          },
+          {
+            "timestamp": "2026-10-23T13:11:00Z",
+            "value": 2860.6666666666665
+          },
+          {
+            "timestamp": "2026-10-23T13:16:00Z",
+            "value": 2412.75
+          }
+        ]
+      },
+      "BytesSent": {
+        "unit": "Bytes",
+        "latest": 1030531.5,
+        "points": [
+          {
+            "timestamp": "2026-10-23T12:21:00Z",
+            "value": 689099.5
+          },
+          {
+            "timestamp": "2026-10-23T12:26:00Z",
+            "value": 1002968.25
+          },
+          {
+            "timestamp": "2026-10-23T12:31:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:36:00Z",
+            "value": 1428551
+          },
+          {
+            "timestamp": "2026-10-23T12:41:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:46:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:51:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:56:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T13:01:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T13:06:00Z",
+            "value": 1364215
+          },
+          {
+            "timestamp": "2026-10-23T13:11:00Z",
+            "value": 917972
+          },
+          {
+            "timestamp": "2026-10-23T13:16:00Z",
+            "value": 1030531.5
+          }
+        ]
+      },
+      "Requests": {
+        "unit": "Count",
+        "latest": 2.25,
+        "points": [
+          {
+            "timestamp": "2026-10-23T12:21:00Z",
+            "value": 2.5
+          },
+          {
+            "timestamp": "2026-10-23T12:26:00Z",
+            "value": 4
+          },
+          {
+            "timestamp": "2026-10-23T12:31:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:36:00Z",
+            "value": 3.75
+          },
+          {
+            "timestamp": "2026-10-23T12:41:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:46:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:51:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:56:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T13:01:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T13:06:00Z",
+            "value": 1
+          },
+          {
+            "timestamp": "2026-10-23T13:11:00Z",
+            "value": 2.6666666666666665
+          },
+          {
+            "timestamp": "2026-10-23T13:16:00Z",
+            "value": 2.25
+          }
+        ]
+      },
+      "HttpResponseTime": {
+        "unit": "Seconds",
+        "latest": 40.871,
+        "points": [
+          {
+            "timestamp": "2026-10-23T12:21:00Z",
+            "value": 194.0926
+          },
+          {
+            "timestamp": "2026-10-23T12:26:00Z",
+            "value": 9.2145
+          },
+          {
+            "timestamp": "2026-10-23T12:31:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:36:00Z",
+            "value": 41.342533333333336
+          },
+          {
+            "timestamp": "2026-10-23T12:41:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:46:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:51:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T12:56:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T13:01:00Z",
+            "value": 0
+          },
+          {
+            "timestamp": "2026-10-23T13:06:00Z",
+            "value": 1845.671
+          },
+          {
+            "timestamp": "2026-10-23T13:11:00Z",
+            "value": 9.6096875
+          },
+          {
+            "timestamp": "2026-10-23T13:16:00Z",
+            "value": 40.871
+          }
+        ]
+      }
+    }
+  },
+  "cpu": {
+    "percent_cpu_used": 0.0,
+    "percent_memory_used": 0.0,
+    "average_memory_percent": 0.0
+  },
+  "memory": {
+    "percent_cpu_used": 0.0,
+    "percent_memory_used": 0.0,
+    "average_memory_percent": 0.0
+  },
+  "disk": {
+    "status": "success",
+    "mounts": [
+      {
+        "mount_path": "/",
+        "usage_percent": 11.0,
+        "host": "lw1sdlwk000C8B",
+        "timestamp": "2026-10-23T13:00:00Z"
+      },
+      {
+        "mount_path": "/mnt",
+        "usage_percent": 59.0,
+        "host": "lw1sdlwk000C8B",
+        "timestamp": "2026-10-23T13:00:00Z"
+      }
+    ]
+  },
+  "processes": {
+    "status": "success",
+    "timestamp": "2026-10-23T08:53:00Z",
+    "total_processes": 52,
+    "processes": [
+      {
+        "pid": 2836362,
+        "user": "297611",
+        "priority": "30",
+        "nice": "10",
+        "virt": "8914240",
+        "res": "22920",
+        "shr": "11756",
+        "state": "S",
+        "cpu_percent": 1.5,
+        "memory_percent": 1.2,
+        "time": "1:38.55",
+        "command": "dotnet +"
+      },
+      {
+        "pid": 80028,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "261.0g",
+        "res": "16024",
+        "shr": "13352",
+        "state": "S",
+        "cpu_percent": 1.5,
+        "memory_percent": 0.8,
+        "time": "0:59.86",
+        "command": "./Token+"
+      },
+      {
+        "pid": 36908,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "8974756",
+        "res": "71880",
+        "shr": "24716",
+        "state": "S",
+        "cpu_percent": 1.0,
+        "memory_percent": 3.8,
+        "time": "56:22.04",
+        "command": "/azure-+"
+      },
+      {
+        "pid": 3237078,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "1279592",
+        "res": "45676",
+        "shr": "7052",
+        "state": "D",
+        "cpu_percent": 1.0,
+        "memory_percent": 2.4,
+        "time": "1:33.98",
+        "command": "npm sta+"
+      },
+      {
+        "pid": 1113701,
+        "user": "297611",
+        "priority": "30",
+        "nice": "10",
+        "virt": "8906752",
+        "res": "22552",
+        "shr": "10480",
+        "state": "S",
+        "cpu_percent": 0.5,
+        "memory_percent": 1.2,
+        "time": "8:05.61",
+        "command": "dotnet +"
+      },
+      {
+        "pid": 2842406,
+        "user": "297611",
+        "priority": "30",
+        "nice": "10",
+        "virt": "8788972",
+        "res": "14288",
+        "shr": "8424",
+        "state": "S",
+        "cpu_percent": 0.5,
+        "memory_percent": 0.8,
+        "time": "1:36.73",
+        "command": "dotnet +"
+      },
+      {
+        "pid": 3241449,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "814616",
+        "res": "8808",
+        "shr": "3856",
+        "state": "S",
+        "cpu_percent": 0.5,
+        "memory_percent": 0.5,
+        "time": "1:55.03",
+        "command": "/tmp/8d+"
+      },
+      {
+        "pid": 80390,
+        "user": "297607",
+        "priority": "30",
+        "nice": "10",
+        "virt": "626428",
+        "res": "3276",
+        "shr": "1776",
+        "state": "S",
+        "cpu_percent": 0.5,
+        "memory_percent": 0.2,
+        "time": "17:57.34",
+        "command": "python +"
+      },
+      {
+        "pid": 3237100,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "11.3g",
+        "res": "64956",
+        "shr": "6776",
+        "state": "D",
+        "cpu_percent": 0.0,
+        "memory_percent": 3.4,
+        "time": "1:40.27",
+        "command": "node se+"
+      },
+      {
+        "pid": 37167,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "260.9g",
+        "res": "19732",
+        "shr": "14632",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 1.0,
+        "time": "1:56.69",
+        "command": "dotnet +"
+      },
+      {
+        "pid": 2842436,
+        "user": "297611",
+        "priority": "30",
+        "nice": "10",
+        "virt": "261.0g",
+        "res": "19936",
+        "shr": "11384",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 1.0,
+        "time": "1:37.06",
+        "command": "dotnet +"
+      },
+      {
+        "pid": 3241120,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "261.0g",
+        "res": "7448",
+        "shr": "5592",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.4,
+        "time": "0:06.45",
+        "command": "./DiagS+"
+      },
+      {
+        "pid": 36596,
+        "user": "296608",
+        "priority": "20",
+        "nice": "0",
+        "virt": "1137924",
+        "res": "5548",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.3,
+        "time": "0:46.42",
+        "command": "node /o+"
+      },
+      {
+        "pid": 1112885,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "10.8g",
+        "res": "6336",
+        "shr": "4276",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.3,
+        "time": "1:18.52",
+        "command": "node /o+"
+      },
+      {
+        "pid": 3237012,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "261.0g",
+        "res": "6584",
+        "shr": "4892",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.3,
+        "time": "0:05.59",
+        "command": "./DiagS+"
+      },
+      {
+        "pid": 2835546,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "10.6g",
+        "res": "3268",
+        "shr": "2708",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.2,
+        "time": "0:03.58",
+        "command": "node /o+"
+      },
+      {
+        "pid": 36930,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "680640",
+        "res": "2316",
+        "shr": "1672",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.1,
+        "time": "11:12.40",
+        "command": "/usr/bi+"
+      },
+      {
+        "pid": 2840767,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "5932",
+        "res": "1572",
+        "shr": "1392",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.1,
+        "time": "0:11.09",
+        "command": "/bin/ba+"
+      },
+      {
+        "pid": 2840920,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "9811104",
+        "res": "1008",
+        "shr": "560",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.1,
+        "time": "0:04.55",
+        "command": "node /o+"
+      },
+      {
+        "pid": 3237020,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "4032",
+        "res": "956",
+        "shr": "852",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.1,
+        "time": "0:00.42",
+        "command": "/usr/sb+"
+      },
+      {
+        "pid": 3456537,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "7124",
+        "res": "2504",
+        "shr": "2084",
+        "state": "D",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.1,
+        "time": "0:00.54",
+        "command": "pgrep -+"
+      },
+      {
+        "pid": 3456538,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "7124",
+        "res": "2476",
+        "shr": "2060",
+        "state": "R",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.1,
+        "time": "0:00.43",
+        "command": "pgrep -+"
+      },
+      {
+        "pid": 3456545,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "6844",
+        "res": "1356",
+        "shr": "1068",
+        "state": "R",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.1,
+        "time": "0:00.98",
+        "command": "pgrep -+"
+      },
+      {
+        "pid": 3456846,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "4032",
+        "res": "1524",
+        "shr": "1352",
+        "state": "R",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.1,
+        "time": "0:00.01",
+        "command": "/usr/sb+"
+      },
+      {
+        "pid": 3456887,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "6620",
+        "res": "1676",
+        "shr": "1508",
+        "state": "R",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.1,
+        "time": "0:00.00",
+        "command": "/usr/sb+"
+      },
+      {
+        "pid": 3456940,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "5932",
+        "res": "1224",
+        "shr": "1032",
+        "state": "R",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.1,
+        "time": "0:00.00",
+        "command": "/bin/ba+"
+      },
+      {
+        "pid": 36821,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "7740",
+        "res": "8",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.09",
+        "command": "bash /a+"
+      },
+      {
+        "pid": 36907,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "12016",
+        "res": "8",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.00",
+        "command": "sshd: /+"
+      },
+      {
+        "pid": 37120,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "4384",
+        "res": "8",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.04",
+        "command": "/bin/ba+"
+      },
+      {
+        "pid": 79993,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "4384",
+        "res": "8",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.06",
+        "command": "/bin/sh+"
+      },
+      {
+        "pid": 1112771,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "6268",
+        "res": "12",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.17",
+        "command": "runuser+"
+      },
+      {
+        "pid": 1112871,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "15452",
+        "res": "8",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.01",
+        "command": "sshd: /+"
+      },
+      {
+        "pid": 1112874,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "4488",
+        "res": "180",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:59.50",
+        "command": "/bin/ba+"
+      },
+      {
+        "pid": 1208802,
+        "user": "300244",
+        "priority": "30",
+        "nice": "10",
+        "virt": "0",
+        "res": "0",
+        "shr": "0",
+        "state": "Z",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.00",
+        "command": "[sshd] +"
+      },
+      {
+        "pid": 1208803,
+        "user": "300244",
+        "priority": "30",
+        "nice": "10",
+        "virt": "0",
+        "res": "0",
+        "shr": "0",
+        "state": "Z",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.03",
+        "command": "[bash] +"
+      },
+      {
+        "pid": 2835379,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "6268",
+        "res": "12",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.13",
+        "command": "runuser+"
+      },
+      {
+        "pid": 2835536,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "15452",
+        "res": "8",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.00",
+        "command": "sshd: /+"
+      },
+      {
+        "pid": 2835539,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "4488",
+        "res": "176",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:12.59",
+        "command": "/bin/ba+"
+      },
+      {
+        "pid": 2840505,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "8768",
+        "res": "20",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.21",
+        "command": "runuser+"
+      },
+      {
+        "pid": 2840515,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "6624",
+        "res": "12",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.16",
+        "command": "runuser+"
+      },
+      {
+        "pid": 2840764,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "13352",
+        "res": "8",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.00",
+        "command": "sshd: /+"
+      },
+      {
+        "pid": 2840772,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "10.6g",
+        "res": "16",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:02.38",
+        "command": "node /o+"
+      },
+      {
+        "pid": 2840890,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "12020",
+        "res": "8",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.00",
+        "command": "sshd: /+"
+      },
+      {
+        "pid": 2840902,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "4756",
+        "res": "160",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:11.71",
+        "command": "/bin/ba+"
+      },
+      {
+        "pid": 3234923,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "2588",
+        "res": "12",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.12",
+        "command": "/bin/sh+"
+      },
+      {
+        "pid": 3235029,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "15456",
+        "res": "8",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.00",
+        "command": "sshd: /+"
+      },
+      {
+        "pid": 3237011,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "4356",
+        "res": "8",
+        "shr": "0",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.00",
+        "command": "bash /r+"
+      },
+      {
+        "pid": 3237099,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "2588",
+        "res": "12",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.00",
+        "command": "sh -c n+"
+      },
+      {
+        "pid": 3238969,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "2588",
+        "res": "12",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.16",
+        "command": "/bin/sh+"
+      },
+      {
+        "pid": 3239073,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "15456",
+        "res": "8",
+        "shr": "4",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.00",
+        "command": "sshd: /+"
+      },
+      {
+        "pid": 3241119,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "6944",
+        "res": "8",
+        "shr": "0",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.00",
+        "command": "bash /r+"
+      },
+      {
+        "pid": 3241175,
+        "user": "296608",
+        "priority": "30",
+        "nice": "10",
+        "virt": "6620",
+        "res": "932",
+        "shr": "832",
+        "state": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "time": "0:00.52",
+        "command": "/usr/sb+"
+      }
+    ]
+  },
+  "all_metrics": {
+    "app_service": "miraai-auditsphere-dev",
+    "resource_group": "MiraAI-AuditSphere",
+    "subscription_id": "902c816f-b3a0-41b7-a6e7-bea44dde47e8",
+    "timestamp": "2026-10-23T13:21:43.786369+00:00",
+    "cpu": {
+      "percent_cpu_used": 0.0,
+      "cpu_time_seconds": 240,
+      "history": [
+        {
+          "timestamp": "2026-10-23T12:21:00Z",
+          "value": 213.2
+        },
+        {
+          "timestamp": "2026-10-23T12:26:00Z",
+          "value": 216.6
+        },
+        {
+          "timestamp": "2026-10-23T12:31:00Z",
+          "value": 216.8
+        },
+        {
+          "timestamp": "2026-10-23T12:36:00Z",
+          "value": 202
+        },
+        {
+          "timestamp": "2026-10-23T12:41:00Z",
+          "value": 210.4
+        },
+        {
+          "timestamp": "2026-10-23T12:46:00Z",
+          "value": 222
+        },
+        {
+          "timestamp": "2026-10-23T12:51:00Z",
+          "value": 205.2
+        },
+        {
+          "timestamp": "2026-10-23T12:56:00Z",
+          "value": 205
+        },
+        {
+          "timestamp": "2026-10-23T13:01:00Z",
+          "value": 204.8
+        },
+        {
+          "timestamp": "2026-10-23T13:06:00Z",
+          "value": 203.4
+        },
+        {
+          "timestamp": "2026-10-23T13:11:00Z",
+          "value": 233.8
+        },
+        {
+          "timestamp": "2026-10-23T13:16:00Z",
+          "value": 240
+        }
+      ]
+    },
+    "memory": {
+      "percent_physical_used": 0.0,
+      "average_memory_percent": 0.0,
+      "working_set_mb": 26.26,
+      "average_working_set_mb": 26.26,
+      "history": [
+        {
+          "timestamp": "2026-10-23T12:21:00Z",
+          "value": 29.79
+        },
+        {
+          "timestamp": "2026-10-23T12:26:00Z",
+          "value": 29.26
+        },
+        {
+          "timestamp": "2026-10-23T12:31:00Z",
+          "value": 29.16
+        },
+        {
+          "timestamp": "2026-10-23T12:36:00Z",
+          "value": 29.06
+        },
+        {
+          "timestamp": "2026-10-23T12:41:00Z",
+          "value": 28.98
+        },
+        {
+          "timestamp": "2026-10-23T12:46:00Z",
+          "value": 27.16
+        },
+        {
+          "timestamp": "2026-10-23T12:51:00Z",
+          "value": 28.43
+        },
+        {
+          "timestamp": "2026-10-23T12:56:00Z",
+          "value": 29.02
+        },
+        {
+          "timestamp": "2026-10-23T13:01:00Z",
+          "value": 29.03
+        },
+        {
+          "timestamp": "2026-10-23T13:06:00Z",
+          "value": 28.05
+        },
+        {
+          "timestamp": "2026-10-23T13:11:00Z",
+          "value": 27.42
+        },
+        {
+          "timestamp": "2026-10-23T13:16:00Z",
+          "value": 26.26
+        }
+      ]
+    },
+    "disk": {
+      "mounts": [
+        {
+          "mount_path": "/",
+          "usage_percent": 11.0,
+          "host": "lw1sdlwk000C8B",
+          "timestamp": "2026-10-23T13:00:00Z"
+        },
+        {
+          "mount_path": "/mnt",
+          "usage_percent": 59.0,
+          "host": "lw1sdlwk000C8B",
+          "timestamp": "2026-10-23T13:00:00Z"
+        }
+      ],
+      "io_read_ops_sec": 1,
+      "io_write_ops_sec": 0
+    },
+    "network": {
+      "bytes_received": 2412.75,
+      "bytes_sent": 1030531.5,
+      "requests": 2.25,
+      "response_time_seconds": 40.871
+    },
+    "processes": [],
+    "total_processes": 0,
+    "raw_azure_monitor": {
+      "status": "success",
+      "source": "azure_monitor",
+      "metrics": {
+        "CpuTime": {
+          "unit": "Seconds",
+          "latest": 240,
+          "points": [
+            {
+              "timestamp": "2026-10-23T12:21:00Z",
+              "value": 213.2
+            },
+            {
+              "timestamp": "2026-10-23T12:26:00Z",
+              "value": 216.6
+            },
+            {
+              "timestamp": "2026-10-23T12:31:00Z",
+              "value": 216.8
+            },
+            {
+              "timestamp": "2026-10-23T12:36:00Z",
+              "value": 202
+            },
+            {
+              "timestamp": "2026-10-23T12:41:00Z",
+              "value": 210.4
+            },
+            {
+              "timestamp": "2026-10-23T12:46:00Z",
+              "value": 222
+            },
+            {
+              "timestamp": "2026-10-23T12:51:00Z",
+              "value": 205.2
+            },
+            {
+              "timestamp": "2026-10-23T12:56:00Z",
+              "value": 205
+            },
+            {
+              "timestamp": "2026-10-23T13:01:00Z",
+              "value": 204.8
+            },
+            {
+              "timestamp": "2026-10-23T13:06:00Z",
+              "value": 203.4
+            },
+            {
+              "timestamp": "2026-10-23T13:11:00Z",
+              "value": 233.8
+            },
+            {
+              "timestamp": "2026-10-23T13:16:00Z",
+              "value": 240
+            }
+          ]
+        },
+        "AverageMemoryWorkingSet": {
+          "unit": "MB",
+          "latest": 26.26,
+          "points": [
+            {
+              "timestamp": "2026-10-23T12:21:00Z",
+              "value": 29.79
+            },
+            {
+              "timestamp": "2026-10-23T12:26:00Z",
+              "value": 29.26
+            },
+            {
+              "timestamp": "2026-10-23T12:31:00Z",
+              "value": 29.16
+            },
+            {
+              "timestamp": "2026-10-23T12:36:00Z",
+              "value": 29.06
+            },
+            {
+              "timestamp": "2026-10-23T12:41:00Z",
+              "value": 28.98
+            },
+            {
+              "timestamp": "2026-10-23T12:46:00Z",
+              "value": 27.16
+            },
+            {
+              "timestamp": "2026-10-23T12:51:00Z",
+              "value": 28.43
+            },
+            {
+              "timestamp": "2026-10-23T12:56:00Z",
+              "value": 29.02
+            },
+            {
+              "timestamp": "2026-10-23T13:01:00Z",
+              "value": 29.03
+            },
+            {
+              "timestamp": "2026-10-23T13:06:00Z",
+              "value": 28.05
+            },
+            {
+              "timestamp": "2026-10-23T13:11:00Z",
+              "value": 27.42
+            },
+            {
+              "timestamp": "2026-10-23T13:16:00Z",
+              "value": 26.26
+            }
+          ]
+        },
+        "MemoryWorkingSet": {
+          "unit": "MB",
+          "latest": 26.26,
+          "points": [
+            {
+              "timestamp": "2026-10-23T12:21:00Z",
+              "value": 29.79
+            },
+            {
+              "timestamp": "2026-10-23T12:26:00Z",
+              "value": 29.26
+            },
+            {
+              "timestamp": "2026-10-23T12:31:00Z",
+              "value": 29.16
+            },
+            {
+              "timestamp": "2026-10-23T12:36:00Z",
+              "value": 29.06
+            },
+            {
+              "timestamp": "2026-10-23T12:41:00Z",
+              "value": 28.98
+            },
+            {
+              "timestamp": "2026-10-23T12:46:00Z",
+              "value": 27.16
+            },
+            {
+              "timestamp": "2026-10-23T12:51:00Z",
+              "value": 28.43
+            },
+            {
+              "timestamp": "2026-10-23T12:56:00Z",
+              "value": 29.02
+            },
+            {
+              "timestamp": "2026-10-23T13:01:00Z",
+              "value": 29.03
+            },
+            {
+              "timestamp": "2026-10-23T13:06:00Z",
+              "value": 28.05
+            },
+            {
+              "timestamp": "2026-10-23T13:11:00Z",
+              "value": 27.42
+            },
+            {
+              "timestamp": "2026-10-23T13:16:00Z",
+              "value": 26.26
+            }
+          ]
+        },
+        "IoReadOperationsPerSecond": {
+          "unit": "BytesPerSecond",
+          "latest": 1,
+          "points": [
+            {
+              "timestamp": "2026-10-23T12:21:00Z",
+              "value": 0.5
+            },
+            {
+              "timestamp": "2026-10-23T12:26:00Z",
+              "value": 1
+            },
+            {
+              "timestamp": "2026-10-23T12:31:00Z",
+              "value": 0.5
+            },
+            {
+              "timestamp": "2026-10-23T12:36:00Z",
+              "value": 0.67
+            },
+            {
+              "timestamp": "2026-10-23T12:41:00Z",
+              "value": 1
+            },
+            {
+              "timestamp": "2026-10-23T12:46:00Z",
+              "value": 0.67
+            },
+            {
+              "timestamp": "2026-10-23T12:51:00Z",
+              "value": 1
+            },
+            {
+              "timestamp": "2026-10-23T12:56:00Z",
+              "value": 1.5
+            },
+            {
+              "timestamp": "2026-10-23T13:01:00Z",
+              "value": 0.67
+            },
+            {
+              "timestamp": "2026-10-23T13:06:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T13:11:00Z",
+              "value": 1.5
+            },
+            {
+              "timestamp": "2026-10-23T13:16:00Z",
+              "value": 1
+            }
+          ]
+        },
+        "IoWriteOperationsPerSecond": {
+          "unit": "BytesPerSecond",
+          "latest": 0,
+          "points": [
+            {
+              "timestamp": "2026-10-23T12:21:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:26:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:31:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:36:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:41:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:46:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:51:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:56:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T13:01:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T13:06:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T13:11:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T13:16:00Z",
+              "value": 0
+            }
+          ]
+        },
+        "BytesReceived": {
+          "unit": "Bytes",
+          "latest": 2412.75,
+          "points": [
+            {
+              "timestamp": "2026-10-23T12:21:00Z",
+              "value": 2682.5
+            },
+            {
+              "timestamp": "2026-10-23T12:26:00Z",
+              "value": 4291
+            },
+            {
+              "timestamp": "2026-10-23T12:31:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:36:00Z",
+              "value": 4021.25
+            },
+            {
+              "timestamp": "2026-10-23T12:41:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:46:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:51:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:56:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T13:01:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T13:06:00Z",
+              "value": 1069
+            },
+            {
+              "timestamp": "2026-10-23T13:11:00Z",
+              "value": 2860.6666666666665
+            },
+            {
+              "timestamp": "2026-10-23T13:16:00Z",
+              "value": 2412.75
+            }
+          ]
+        },
+        "BytesSent": {
+          "unit": "Bytes",
+          "latest": 1030531.5,
+          "points": [
+            {
+              "timestamp": "2026-10-23T12:21:00Z",
+              "value": 689099.5
+            },
+            {
+              "timestamp": "2026-10-23T12:26:00Z",
+              "value": 1002968.25
+            },
+            {
+              "timestamp": "2026-10-23T12:31:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:36:00Z",
+              "value": 1428551
+            },
+            {
+              "timestamp": "2026-10-23T12:41:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:46:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:51:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:56:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T13:01:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T13:06:00Z",
+              "value": 1364215
+            },
+            {
+              "timestamp": "2026-10-23T13:11:00Z",
+              "value": 917972
+            },
+            {
+              "timestamp": "2026-10-23T13:16:00Z",
+              "value": 1030531.5
+            }
+          ]
+        },
+        "Requests": {
+          "unit": "Count",
+          "latest": 2.25,
+          "points": [
+            {
+              "timestamp": "2026-10-23T12:21:00Z",
+              "value": 2.5
+            },
+            {
+              "timestamp": "2026-10-23T12:26:00Z",
+              "value": 4
+            },
+            {
+              "timestamp": "2026-10-23T12:31:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:36:00Z",
+              "value": 3.75
+            },
+            {
+              "timestamp": "2026-10-23T12:41:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:46:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:51:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:56:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T13:01:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T13:06:00Z",
+              "value": 1
+            },
+            {
+              "timestamp": "2026-10-23T13:11:00Z",
+              "value": 2.6666666666666665
+            },
+            {
+              "timestamp": "2026-10-23T13:16:00Z",
+              "value": 2.25
+            }
+          ]
+        },
+        "HttpResponseTime": {
+          "unit": "Seconds",
+          "latest": 40.871,
+          "points": [
+            {
+              "timestamp": "2026-10-23T12:21:00Z",
+              "value": 194.0926
+            },
+            {
+              "timestamp": "2026-10-23T12:26:00Z",
+              "value": 9.2145
+            },
+            {
+              "timestamp": "2026-10-23T12:31:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:36:00Z",
+              "value": 41.342533333333336
+            },
+            {
+              "timestamp": "2026-10-23T12:41:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:46:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:51:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T12:56:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T13:01:00Z",
+              "value": 0
+            },
+            {
+              "timestamp": "2026-10-23T13:06:00Z",
+              "value": 1845.671
+            },
+            {
+              "timestamp": "2026-10-23T13:11:00Z",
+              "value": 9.6096875
+            },
+            {
+              "timestamp": "2026-10-23T13:16:00Z",
+              "value": 40.871
+            }
+          ]
+        }
+      }
+    }
+  }
+}

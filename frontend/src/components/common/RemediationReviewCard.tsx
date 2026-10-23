@@ -144,7 +144,7 @@ export const RemediationReviewCard: React.FC<RemediationReviewCardProps> = ({
       <div className="mt-3 rounded-[var(--radius-sm)] border border-[#1E293B] bg-[#090D16] p-3 text-xs font-mono shadow-inner">
         <div className="flex items-center justify-between pb-1.5 border-b border-white/5 mb-2">
           <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400">
-            <Terminal className="h-3.5 w-3.5" /> Executed SSH Shell Command (on 20.15.164.79)
+            <Terminal className="h-3.5 w-3.5" /> Executed Shell Command (on miraai-auditsphere-dev)
           </span>
           <span className="text-[10px] text-muted-foreground uppercase">
             Exit Code: {exitCode}

@@ -84,7 +84,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={onFetchMetrics}
           disabled={isFetchingMetrics}
           data-slot="button"
-          title="Trigger ingestion from http://20.15.164.79:8080/api/history"
+          title="Trigger ingestion from Azure Monitor & App Service"
           className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--primary)]/40 bg-[var(--primary-tint)] px-3 py-1.5 text-xs font-medium text-[var(--primary)] transition-all hover:bg-[var(--primary)] hover:text-white disabled:opacity-50"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${isFetchingMetrics ? 'animate-spin' : ''}`} />

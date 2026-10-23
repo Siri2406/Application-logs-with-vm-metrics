@@ -38,10 +38,7 @@ class SSHRemediationService:
     def _load_config(self):
         """Dynamically reloads credentials from .env so modifications take effect immediately."""
         load_dotenv(PROJECT_ROOT / ".env", override=True)
-        base_api = os.getenv("METRICS_API_BASE_URL", "http://20.15.164.79:8080")
-        extracted_ip = re.search(r"https?://([^:/]+)", base_api)
-        default_host = extracted_ip.group(1) if extracted_ip else "20.15.164.79"
-
+        default_host = "miraai-auditsphere-dev.azurewebsites.net"
         self.host = (os.getenv("VM_HOST") or default_host).strip()
         self.port = int((os.getenv("VM_SSH_PORT") or "22").strip())
         self.username = (os.getenv("VM_USER") or os.getenv("VM_SSH_USER") or "azureuser").strip()

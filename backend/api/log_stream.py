@@ -24,7 +24,7 @@ async def stream_logs(request: Request, source: str = Query("azure")):
         buffered = active_service.get_buffered_logs()
         if buffered:
             for line in buffered.split("\n"):
-                if line:
+                if line and not azure_log_stream.is_ignorable_banner(line):
                     yield f"data: {line}\n\n"
 
         # Setup a queue for this client
@@ -36,7 +36,8 @@ async def stream_logs(request: Request, source: str = Query("azure")):
                     break
                 try:
                     log_line = await asyncio.wait_for(queue.get(), timeout=15.0)
-                    yield f"data: {log_line}\n\n"
+                    if not azure_log_stream.is_ignorable_banner(log_line):
+                        yield f"data: {log_line}\n\n"
                 except asyncio.TimeoutError:
                     # Send keep-alive comment to prevent proxy/browser timeouts
                     yield ": keep-alive\n\n"
@@ -52,6 +53,20 @@ async def stream_logs(request: Request, source: str = Query("azure")):
             "X-Accel-Buffering": "no",
         },
     )
+
+@router.get("/recent")
+async def get_recent_logs(source: str = Query("azure"), limit: int = Query(50)):
+    """
+    Returns recent live application logs from the live stream buffer or Azure diagnostic storage.
+    """
+    active_service = gcp_log_stream if source.lower() == "gcp" else azure_log_stream
+    logs_str = active_service.get_buffered_logs()
+    if not logs_str and source.lower() == "azure":
+        logs_str = await asyncio.to_thread(active_service.fetch_recent_logs_from_azure, limit)
+
+    raw_lines = [l.strip() for l in (logs_str or "").splitlines() if l.strip()]
+    clean_lines = [l for l in raw_lines if not azure_log_stream.is_ignorable_banner(l)]
+    return {"logs": clean_lines[-limit:] if len(clean_lines) > limit else clean_lines}
 
 @router.get("/status")
 async def get_status(source: str = Query("azure")):

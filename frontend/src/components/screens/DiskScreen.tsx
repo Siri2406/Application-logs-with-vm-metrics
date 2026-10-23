@@ -3,6 +3,7 @@ import {
   Activity,
   HardDrive,
   RefreshCw,
+  Server,
   ShieldCheck,
 } from 'lucide-react';
 import { Card } from '../common/Card';
@@ -158,8 +159,8 @@ export const DiskScreen: React.FC<DiskScreenProps> = ({
               <HardDrive className="h-4 w-4 text-[var(--primary)]" />
               <span className="text-xs font-semibold text-foreground">Storage Volume ({hostname})</span>
             </div>
-            <Badge variant={usagePercent >= 70 ? 'destructive' : usagePercent >= 50 ? 'warning' : 'success'} size="sm">
-              {usagePercent}% USED
+            <Badge variant={!data ? 'neutral' : usagePercent >= 70 ? 'destructive' : usagePercent >= 50 ? 'warning' : 'success'} size="sm">
+              {!data ? 'AWAITING RUN' : `${usagePercent}% USED`}
             </Badge>
           </div>
 
@@ -291,22 +292,57 @@ export const DiskScreen: React.FC<DiskScreenProps> = ({
         </div>
       )}
 
-      {/* Disk Utilization Analysis */}
-      {data?.disk_utilization_analysis && (
-        <Card
-          title="Disk Telemetry Assessment"
-          subtitle="Storage accumulation dynamics & partition forecast"
-          action={<Badge variant="warning" size="sm">ANALYSIS TEXT</Badge>}
-        >
-          <div className=" top-0 sticky max-h-[350px] overflow-y-auto rounded-[var(--radius-md)] border border-border bg-[#0B1220] p-3 text-[11px] font-mono text-[#E7EBF3] whitespace-pre-wrap leading-relaxed">
-            <div className="flex items-center gap-1.5 pb-2 text-[var(--primary)] border-b border-white/10 mb-2">
-              <Activity className="h-3.5 w-3.5" />
-              <span className="font-semibold">Storage Space Diagnostics</span>
+      {/* Deep Telemetry Analysis & Host Processes */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {data?.disk_utilization_analysis && (
+          <Card
+            title="Disk Telemetry Assessment"
+            subtitle="Storage accumulation dynamics & partition forecast"
+            action={<Badge variant="warning" size="sm">ANALYSIS TEXT</Badge>}
+          >
+            <div className="top-0 sticky max-h-[350px] overflow-y-auto rounded-[var(--radius-md)] border border-border bg-[#0B1220] p-3 text-[11px] font-mono text-[#E7EBF3] whitespace-pre-wrap leading-relaxed">
+              <div className="flex items-center gap-1.5 pb-2 text-[var(--primary)] border-b border-white/10 mb-2">
+                <Activity className="h-3.5 w-3.5" />
+                <span className="font-semibold">Storage Space Diagnostics</span>
+              </div>
+              {data.disk_utilization_analysis}
             </div>
-            {data.disk_utilization_analysis}
-          </div>
-        </Card>
-      )}
+          </Card>
+        )}
+
+        {data?.top_processes && data.top_processes.length > 0 && (
+          <Card
+            title="Top I/O & Storage Processes"
+            subtitle="Processes driving storage activity and system file operations"
+            action={<Badge variant="warning" size="sm">TOP {data.top_processes.length} PROCS</Badge>}
+          >
+            <div className="top-0 sticky max-h-[350px] overflow-y-auto space-y-2">
+              {data.top_processes.map((proc, pIdx) => (
+                <div
+                  key={pIdx}
+                  className="flex items-center justify-between rounded-[var(--radius-sm)] border border-border/80 bg-muted/20 p-2.5 text-xs font-mono"
+                >
+                  <div className="flex items-center gap-2">
+                    <Server className="h-3.5 w-3.5 text-muted-foreground" />
+                    <div>
+                      <span className="font-semibold text-foreground">{proc.process_name || proc.name || 'Unknown'}</span>
+                      <span className="ml-1 text-[11px] text-muted-foreground">(PID: {proc.pid})</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {proc.cpu_percent !== undefined && (
+                      <span className="text-[11px] text-muted-foreground">{proc.cpu_percent}% CPU</span>
+                    )}
+                    <Badge variant="warning" size="sm">
+                      {proc.memory_percent ?? 0}% RAM
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+      </div>
     </div>
   );
 };

@@ -11,11 +11,11 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-METRICS_API_BASE_URL = os.getenv("METRICS_API_BASE_URL", "http://20.15.164.79:8080").rstrip("/")
-HISTORY_API_URL = f"{METRICS_API_BASE_URL}/api/history"
-CURRENT_METRICS_API_URL = f"{METRICS_API_BASE_URL}/api/metrics"
-PROCESSES_API_URL = f"{METRICS_API_BASE_URL}/api/processes"
-SERVICE_LOGS_API_URL = f"{METRICS_API_BASE_URL}/api/service-logs"
+METRICS_API_BASE_URL = os.getenv("METRICS_API_BASE_URL", "").rstrip("/")
+HISTORY_API_URL = f"{METRICS_API_BASE_URL}/api/history" if METRICS_API_BASE_URL else ""
+CURRENT_METRICS_API_URL = f"{METRICS_API_BASE_URL}/api/metrics" if METRICS_API_BASE_URL else ""
+PROCESSES_API_URL = f"{METRICS_API_BASE_URL}/api/processes" if METRICS_API_BASE_URL else ""
+SERVICE_LOGS_API_URL = f"{METRICS_API_BASE_URL}/api/service-logs" if METRICS_API_BASE_URL else ""
 DEFAULT_LOGS_DIR = Path(__file__).resolve().parent.parent / "logs"
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -82,17 +82,23 @@ def fetch_live_telemetry_unmerged(
             and str(p.get("name", "")).lower() not in PROTECTED_PROCESSES
             and "dashboard.py" not in str(p.get("command_line", "")).lower()
         ]
-        sorted_procs = sorted(workload_procs, key=lambda p: float(p.get("cpu_percent", 0.0)), reverse=True)
-        top_5_processes = sorted_procs[:15]
-        top_5_memory_processes = sorted(
+        sorted_procs = sorted(workload_procs, key=lambda p: float(p.get("cpu_percent", 0.0) or 0.0), reverse=True)
+        top_15_processes = sorted_procs[:15]
+        top_15_memory_processes = sorted(
             workload_procs,
             key=lambda p: float(p.get("memory_percent", 0.0) or 0.0),
             reverse=True,
         )[:15]
+        top_15_disk_processes = sorted(
+            workload_procs,
+            key=lambda p: float(p.get("disk_io_mb", p.get("io_read_mbs", p.get("cpu_percent", 0.0))) or 0.0),
+            reverse=True,
+        )[:15]
     except Exception as exc:
         logger.warning(f"Could not fetch /api/processes: {exc}")
-        top_5_processes = []
-        top_5_memory_processes = []
+        top_15_processes = []
+        top_15_memory_processes = []
+        top_15_disk_processes = []
 
     # 3. Fetch service logs from /api/service-logs -> 5 logs from ALL distinct services (VM-independent)
     distinct_services_logs = {}
@@ -138,10 +144,15 @@ def fetch_live_telemetry_unmerged(
 
     bundle = {
         "current_metrics": current_metrics,
+        "latest_15_recordings": latest_recordings,
         "latest_10_recordings": latest_recordings,
         "latest_5_recordings": latest_recordings,  # Kept for backward compatibility
-        "top_5_processes": top_5_processes,
-        "top_5_memory_processes": top_5_memory_processes,
+        "top_15_processes": top_15_processes,
+        "top_15_memory_processes": top_15_memory_processes,
+        "top_15_disk_processes": top_15_disk_processes,
+        "top_processes": top_15_processes,
+        "top_5_processes": top_15_processes,  # Backward compatibility
+        "top_5_memory_processes": top_15_memory_processes,
         "distinct_services_logs": distinct_services_logs,
         "all_services_logs": all_distinct_service_logs,
         "services_logs_5": all_distinct_service_logs,
@@ -183,7 +194,7 @@ def load_configured_metrics(url: str = HISTORY_API_URL) -> tuple[List[Dict[str, 
 
 
 def fetch_current_metrics(url: str = CURRENT_METRICS_API_URL, timeout: int = 10) -> Dict[str, Any]:
-    """Fetch live single-snapshot current metrics from http://20.15.164.79:8080/api/metrics."""
+    """Fetch live single-snapshot current metrics from configured metrics endpoint."""
     req = urllib.request.Request(
         url,
         headers={"User-Agent": "AgentEcosystem/1.0", "Accept": "application/json"}

@@ -253,6 +253,19 @@ class ApiService {
     return await res.json();
   }
 
+  async getRecentApplicationLogs(source = 'azure', limit = 50): Promise<{ logs: string[] }> {
+    try {
+      const res = await fetch(
+        `${this.baseUrl}/api/application/logs/recent?source=${encodeURIComponent(source)}&limit=${limit}`,
+        { headers: this.getHeaders() }
+      );
+      if (!res.ok) return { logs: [] };
+      return await res.json();
+    } catch {
+      return { logs: [] };
+    }
+  }
+
   async getMockFiles(): Promise<{ files: string[]; error?: string }> {
     const res = await fetch(`${this.baseUrl}/api/mockfiles`, {
       headers: this.getHeaders(),

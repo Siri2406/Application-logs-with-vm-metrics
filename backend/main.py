@@ -251,16 +251,29 @@ def filter_log_content(
     # 2. Severity filter
     if severity and severity.upper() != "ALL":
         sev = severity.upper()
-        sev_patterns = {
-            "CRITICAL": re.compile(r"\b(500|out of memory|oom|fatal|panic|crash)\b", re.I),
-            "ERROR": re.compile(r"\b(error|exception|failed|failure|401|403|400|502|503|refused|sig=|token)\b", re.I),
-            "HIGH": re.compile(r"\b(error|exception|failed|failure|401|403|400|502|503|refused|sig=|token)\b", re.I),
-            "WARNING": re.compile(r"\b(warn|warning|timeout|retry|deprecated)\b", re.I),
-            "INFO": re.compile(r"\b(info|information|started|completed|success)\b", re.I),
-        }
-        pat = sev_patterns.get(sev)
-        if pat:
-            lines = [l for l in lines if pat.search(l)]
+        pat_high = re.compile(
+            r"(\[(HIGH|CRITICAL|ERROR)\]|\b(critical|error|exception|failed|failure|500|401|403|400|502|503|refused|sig=|token|oom|crash|fatal)\b)",
+            re.I,
+        )
+        pat_medium = re.compile(
+            r"(\[(MEDIUM|WARNING|WARN)\]|\b(warn|warning|timeout|retry|deprecated|medium)\b)",
+            re.I,
+        )
+
+        if sev in ("HIGH", "CRITICAL", "ERROR"):
+            lines = [l for l in lines if pat_high.search(l)]
+        elif sev in ("MEDIUM", "WARNING", "WARN"):
+            lines = [l for l in lines if pat_medium.search(l) and not pat_high.search(l)]
+        elif sev in ("LOW", "INFO", "DEBUG"):
+            pat_low = re.compile(
+                r"(\[(LOW|DEBUG|INFO)\]|\b(low|debug|trace|notice|ping|info|information|started|completed|success|200|healthy|ok)\b)",
+                re.I,
+            )
+            lines = [
+                l
+                for l in lines
+                if (pat_low.search(l) or (not pat_high.search(l) and not pat_medium.search(l)))
+            ]
 
     return "\n".join(lines), len(lines)
 
@@ -331,10 +344,12 @@ async def analyze_application(
 ):
     try:
         from tools.application_log_tools import get_recent_application_logs
+        from services.llm_agent_service import analyze_application_logs_content
 
         is_mock = text.startswith("analyze:") and not text.startswith("analyze:live")
+        is_live_request = text.startswith("analyze:live")
         is_gcp_live = text == "analyze:live:gcp" or (
-            cloud_provider and cloud_provider.lower() == "gcp" and not is_mock
+            cloud_provider and cloud_provider.lower() == "gcp" and is_live_request
         )
 
         if is_mock:
@@ -349,9 +364,21 @@ async def analyze_application(
         elif is_gcp_live:
             source_name = "GCP Live Logs"
             raw_logs = get_recent_application_logs(source="gcp")
-        else:
+        elif is_live_request:
             source_name = "Azure Live Logs"
             raw_logs = get_recent_application_logs(source="azure")
+        else:
+            # Client provided explicit log lines directly in the payload
+            source_name = "Azure Live Logs"
+            raw_logs = text
+
+        # Strip any stray Kudu connection greeting banners from the log content
+        if raw_logs:
+            raw_logs = "\n".join([
+                l for l in raw_logs.splitlines()
+                if "welcome, you are now connected" not in l.lower()
+                and "connected to log-streaming" not in l.lower()
+            ])
 
         # Build filter label
         filter_parts = []
@@ -364,8 +391,8 @@ async def analyze_application(
         filter_label = f" [{', '.join(filter_parts)}]" if has_filter else ""
         file_name = f"{source_name}{filter_label}"
 
-        # Apply filtering
-        if has_filter:
+        # Apply filtering if filters are active
+        if has_filter and raw_logs:
             filtered_logs, match_count = filter_log_content(
                 raw_logs, severity=severity_filter, keyword=keyword_filter
             )
@@ -379,12 +406,16 @@ async def analyze_application(
                     "analyzed_logs": "No matching log lines found.",
                 }
             analyzed_logs = filtered_logs
-            agent_input = f"Please analyze these filtered logs ({', '.join(filter_parts)}):\n{filtered_logs}"
         else:
             analyzed_logs = raw_logs
-            agent_input = text
 
-        response = await asyncio.to_thread(run_agent_sync, app_runner, agent_input)
+        # Run AI Log Analysis using Azure OpenAI responses API with autonomous fallback
+        response = await asyncio.to_thread(
+            analyze_application_logs_content,
+            analyzed_logs,
+            file_name,
+        )
+
         return {
             "response": response,
             "file_name": file_name,

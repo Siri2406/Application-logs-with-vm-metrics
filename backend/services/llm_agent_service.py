@@ -232,7 +232,7 @@ def build_cpu_utilization_analysis_text(metrics_payload: Any) -> str:
     if isinstance(metrics_payload, dict) and "current_metrics" in metrics_payload:
         current_m = metrics_payload.get("current_metrics") or {}
         latest_5 = metrics_payload.get("latest_5_recordings") or [current_m]
-        top_procs = metrics_payload.get("top_5_processes") or []
+        top_procs = metrics_payload.get("top_15_processes") or metrics_payload.get("top_processes") or metrics_payload.get("top_5_processes") or []
         logs_5 = metrics_payload.get("services_logs_5") or []
 
         curr_cpu_obj = current_m.get("cpu") or {}
@@ -253,7 +253,8 @@ def build_cpu_utilization_analysis_text(metrics_payload: Any) -> str:
         thread_cnt = top_proc.get("thread_count")
 
         corr_svc = {}
-        for s in logs_5:
+        for raw_s in logs_5:
+            s = {"service_name": "azure-app-service", "message": raw_s, "timestamp": curr_time} if isinstance(raw_s, str) else raw_s
             s_name = (s.get("service_name") or "").lower()
             s_proc = str(s.get("process") or "").lower()
             if (str(p_pid) in s_proc or
@@ -262,13 +263,18 @@ def build_cpu_utilization_analysis_text(metrics_payload: Any) -> str:
                 corr_svc = s
                 break
         if not corr_svc and logs_5:
-            corr_svc = logs_5[0]
+            first_s = logs_5[0]
+            corr_svc = {"service_name": "azure-app-service", "message": first_s, "timestamp": curr_time} if isinstance(first_s, str) else first_s
 
         corr_time = _fmt_time(corr_svc.get("timestamp", curr_time))
         corr_name = corr_svc.get("service_name") or (f"{p_name}.service" if p_name else "system-workload.service")
         corr_msg = corr_svc.get("message") or f"Service active under process PID {p_pid}"
 
-        other_svcs = [s.get("service_name") for s in logs_5 if s.get("service_name") and s.get("service_name") != corr_name][:2]
+        other_svcs = [
+            (s if isinstance(s, dict) else {}).get("service_name")
+            for s in logs_5
+            if isinstance(s, dict) and s.get("service_name") and s.get("service_name") != corr_name
+        ][:2]
         supp_text = f"{', '.join(other_svcs)} activity observed during the observation window." if other_svcs else "Background system services active during the observation period."
 
         # If current CPU is normal (no issues detected)
@@ -424,7 +430,7 @@ def build_disk_utilization_analysis_text(metrics_payload: Any) -> str:
     if isinstance(metrics_payload, dict) and "current_metrics" in metrics_payload:
         current_m = metrics_payload.get("current_metrics") or {}
         latest_5 = metrics_payload.get("latest_5_recordings") or [current_m]
-        top_procs = metrics_payload.get("top_5_processes") or []
+        top_procs = metrics_payload.get("top_15_disk_processes") or metrics_payload.get("top_15_processes") or metrics_payload.get("top_processes") or metrics_payload.get("top_5_processes") or []
         logs_5 = metrics_payload.get("services_logs_5") or []
 
         d_info = current_m.get("disk") or {}
@@ -567,7 +573,7 @@ def build_memory_utilization_analysis_text(metrics_payload: Any) -> str:
     if isinstance(metrics_payload, dict) and "current_metrics" in metrics_payload:
         current_m = metrics_payload.get("current_metrics") or {}
         latest_5 = metrics_payload.get("latest_5_recordings") or [current_m]
-        top_procs = metrics_payload.get("top_5_processes") or []
+        top_procs = metrics_payload.get("top_15_memory_processes") or metrics_payload.get("top_15_processes") or metrics_payload.get("top_memory_processes") or metrics_payload.get("top_processes") or metrics_payload.get("top_5_processes") or []
         logs_5 = metrics_payload.get("services_logs_5") or []
 
         ram_info = current_m.get("ram") or current_m.get("memory") or current_m.get("ram_metrics") or {}
@@ -836,21 +842,21 @@ Resource under investigation: {resource_type}
 AGENT ROLE & INSTRUCTIONS:
 {system_instructions}
 
-TELEMETRY & LOGS DATA (15 historical recordings, live processes, and system service logs):
+TELEMETRY & PROCESS DATA (Resource metrics, top 15 live processes, and system service logs):
 {json.dumps(metrics_payload, indent=2)}
 
 TASK:
-1. Analyze the provided 15 telemetry logs and process data thoroughly. Do NOT use canned or generic responses.
-2. Formulate an accurate, technical assessment based on the exact numbers observed.
-3. AUTONOMOUS REMEDIATION SELECTION & DIVERSE ALTERNATIVES:
-   - DEDUCE THE EXACT SIGNALS AND PARAMETERS FROM THE LOGS:
-     * Never default to a generic script. Decide whether the situation warrants SIGTERM (-15), pkill (-15 -f <script_name> for script-based worker loops), SIGKILL (-9 for unresponsive/deadlocked processes), renice (-n 10 to -n 19 for throttling), or systemctl restart/reload based directly on the log evidence.
-   - DECIDE THE PRIMARY REMEDIATION COMMAND (in "command") with an evidence-based "remediation_rationale".
-   - PROVIDE TOP 2 TO 3 DIVERSE ALTERNATIVE REMEDIATIONS (in "alternatives"):
-     * Do NOT output boilerplate identical options. Formulate 2 or 3 distinct operational strategies tailored to the logs (e.g. Option 1: Graceful Termination via SIGTERM or pkill -f; Option 2: Zero-Data-Loss Priority Throttling via renice; Option 3: Service-level Restart/Reload).
+1. Analyze the provided resource metrics, top 15 live processes, and system service logs thoroughly.
+2. If threshold limits are exceeded (>= 50%, >= 70%, >= 90%, 100%), formulate and RECOMMEND concrete autonomous remediation plans targeting the offending processes from the top 15 list.
+3. Note: Human-in-the-Loop approval is kept aside; provide direct autonomous recommendations.
+4. DEDUCE THE EXACT SIGNALS AND PARAMETERS FROM THE TELEMETRY AND TOP 15 PROCESS DATA:
+   * Decide whether the situation warrants SIGTERM (-15), pkill (-15 -f <script_name>), SIGKILL (-9), renice (-n 10 to -n 19), or systemctl restart/reload based directly on the offending process.
+   * DECIDE THE PRIMARY REMEDIATION COMMAND (in "command") with an evidence-based "remediation_rationale".
+   * PROVIDE TOP 2 TO 3 DIVERSE ALTERNATIVE REMEDIATIONS (in "alternatives"):
+     * Do NOT output boilerplate identical options. Formulate 2 or 3 distinct operational strategies tailored to the processes and logs (e.g. Option 1: Graceful Termination via SIGTERM or pkill -f; Option 2: Zero-Data-Loss Priority Throttling via renice; Option 3: Service-level Restart/Reload).
      * For each alternative, provide "label", "command" (exact string), "action_type", "target_identifier", "signal" (if applicable), and "description" explaining the operational trade-off.
-   - Allowed binaries: kill, pkill, systemctl, renice, journalctl.
-4. If there are multiple problematic spikes, formulate an individualized plan (for CPU: only generate plans for utilization > 90%; if 100% saturation is present across multiple points, output only 1 plan for 100%).
+   * Allowed binaries: kill, pkill, systemctl, renice, journalctl.
+5. If there are multiple problematic spikes or processes, formulate an individualized plan based on the top 15 processes.
 {analysis_instruction}
 
 Respond ONLY with a valid JSON object matching this structure:
@@ -1032,20 +1038,65 @@ def _generate_fallback_agent_response(
     rationale = ""
     top_procs = []
     if isinstance(metrics_payload, dict):
-        top_procs = metrics_payload.get("top_5_processes") or []
-        if is_memory and not top_procs:
-            top_procs = metrics_payload.get("top_5_memory_processes") or []
-
-    if threshold and threshold >= 70:
-        if top_procs and top_procs[0].get("pid"):
-            p = top_procs[0]
-            pid = p.get("pid")
-            p_name = p.get("process_name") or p.get("name") or "workload"
-            cmd = f"sudo kill -15 {pid}"
-            rationale = f"Evaluated 15 logs: Process {p_name} (PID {pid}) is saturating resources; issuing SIGTERM to cleanly release capacity."
+        if is_memory:
+            top_procs = metrics_payload.get("top_15_memory_processes") or metrics_payload.get("top_15_processes") or metrics_payload.get("top_memory_processes") or metrics_payload.get("top_processes") or metrics_payload.get("top_5_processes") or []
+        elif is_disk:
+            top_procs = metrics_payload.get("top_15_disk_processes") or metrics_payload.get("top_15_processes") or metrics_payload.get("top_processes") or metrics_payload.get("top_5_processes") or []
         else:
-            cmd = "sudo systemctl restart stress-wave"
-            rationale = "Evaluated 15 logs: Background workload daemon is consuming excessive host resources; issuing service restart."
+            top_procs = metrics_payload.get("top_15_processes") or metrics_payload.get("top_processes") or metrics_payload.get("top_5_processes") or []
+
+    alternatives = []
+    if threshold and threshold >= 50:
+        if is_cpu:
+            cmd = "az webapp restart --name miraai-auditsphere-dev --resource-group MiraAI-AuditSphere"
+            rationale = "Restart Azure App Service container 'miraai-auditsphere-dev' to clear saturated compute execution threads and recycle application workers."
+            alternatives = [
+                {
+                    "action_type": "SCALE_COMPUTE_TIER",
+                    "label": "Scale Up Compute Tier (P1V3)",
+                    "command": "az appservice plan update --name ASP-MiraAIAuditSphere-dev --resource-group MiraAI-AuditSphere --sku P1V3",
+                    "target_identifier": "miraai-auditsphere-dev",
+                    "description": "Upgrade App Service Plan to P1V3 for dedicated compute cores and enhanced CPU burst headroom.",
+                },
+                {
+                    "action_type": "SCALE_OUT_INSTANCES",
+                    "label": "Scale Out Instance Count (2 Nodes)",
+                    "command": "az webapp update --name miraai-auditsphere-dev --resource-group MiraAI-AuditSphere --number-of-workers 2",
+                    "target_identifier": "miraai-auditsphere-dev",
+                    "description": "Add an additional worker node to balance high application traffic across multiple CPU instances.",
+                },
+            ]
+        elif is_memory:
+            cmd = "az webapp restart --name miraai-auditsphere-dev --resource-group MiraAI-AuditSphere"
+            rationale = "Recycle Azure App Service container instance to flush memory leak allocations and reclaim working set RAM."
+            alternatives = [
+                {
+                    "action_type": "SCALE_MEMORY_TIER",
+                    "label": "Scale Up Memory Tier (B2/P1V3)",
+                    "command": "az appservice plan update --name ASP-MiraAIAuditSphere-dev --resource-group MiraAI-AuditSphere --sku B2",
+                    "target_identifier": "miraai-auditsphere-dev",
+                    "description": "Upgrade to B2 / P1V3 App Service Plan to allocate 3.5 GB+ RAM for high memory workloads.",
+                },
+                {
+                    "action_type": "TUNE_APP_HEAP",
+                    "label": "Tune Container Runtime Memory",
+                    "command": 'az webapp config appsettings set --name miraai-auditsphere-dev --resource-group MiraAI-AuditSphere --settings NODE_OPTIONS="--max-old-space-size=1536"',
+                    "target_identifier": "miraai-auditsphere-dev",
+                    "description": "Configure explicit memory bounds on runtime process memory to prevent container OOM aborts.",
+                },
+            ]
+        else:
+            cmd = "az webapp log config --name miraai-auditsphere-dev --resource-group MiraAI-AuditSphere --application-logging filesystem --level error"
+            rationale = "Reconfigure Azure application log verbosity to ERROR and clear filesystem cache to recover storage headroom on /mnt."
+            alternatives = [
+                {
+                    "action_type": "PURGE_CONTAINER_TEMP",
+                    "label": "Clear /mnt Container Temp Files",
+                    "command": "find /mnt -type f -name '*.tmp' -delete",
+                    "target_identifier": "miraai-auditsphere-dev",
+                    "description": "Clean temporary cache files from /mnt mount point to restore disk operational headroom.",
+                },
+            ]
 
     return {
         "agent": agent_name,
@@ -1067,14 +1118,14 @@ def _generate_fallback_agent_response(
             "subagent": "diagnosis_agent",
             "diagnosis_status": "CONFIRMED" if threshold else "HEALTHY",
             "root_cause": (
-                f"Full {resource_type} saturation ({peak:.1f}%) driven by primary workload process."
+                f"Full {resource_type} saturation ({peak:.1f}%) driven by active workload on Azure App Service."
                 if peak >= 99.0
                 else f"Elevated {resource_type} resource demand ({peak:.1f}%)."
                 if threshold
                 else f"No issues detected. {resource_type} compute and capacity are operating within healthy limits ({peak:.1f}%)."
             ),
             "explanation": (
-                f"Host is operating at {peak:.1f}% capacity with high process contention."
+                f"Azure App Service worker host is operating at {peak:.1f}% {resource_type} capacity."
                 if threshold
                 else f"Monitored processes and host {resource_type} metrics are within normal baseline headroom."
             ),
@@ -1086,18 +1137,19 @@ def _generate_fallback_agent_response(
                 f"Execute command: {cmd}\nRationale: {rationale}"
                 if cmd
                 else (
-                    f"Scale host {resource_type} resources immediately and inspect top consumers."
+                    f"Scale host {resource_type} resources immediately and inspect application logs."
                     if threshold
                     else "No issues detected. No remediation required."
                 )
             ),
             "preventive_guardrail": (
-                f"Configure proactive alerts at 70% for {resource_type}."
+                f"Configure proactive Azure Monitor alert rules at 70% for {resource_type}."
                 if threshold
                 else f"Continue standard monitoring for {resource_type}."
             ),
             "command": cmd,
             "remediation_rationale": rationale,
+            "alternatives": alternatives,
         },
         "remediation_plans": [
             {
@@ -1105,9 +1157,124 @@ def _generate_fallback_agent_response(
                 "severity": severity,
                 "root_cause": f"{resource_type} reached {peak:.1f}%",
                 "action_required": f"Execute command: {cmd}",
-                "preventive_guardrail": f"Set automated alert policies for {resource_type}.",
+                "preventive_guardrail": f"Set automated Azure alert policies for {resource_type}.",
                 "command": cmd,
                 "remediation_rationale": rationale,
+                "alternatives": alternatives,
             }
         ] if (threshold and cmd) else [],
     }
+
+
+def analyze_application_logs_content(log_content: str, filter_context: str = "") -> str:
+    """
+    Analyzes application log content using Azure OpenAI (gpt-5.6-terra)
+    with a structured prompt for Root Cause, Likely Cause, and Remediation Steps.
+    Includes an autonomous deterministic fallback if the LLM API is unavailable.
+    """
+    if not log_content or not log_content.strip():
+        return (
+            "No log content was provided for analysis. Please ensure application logs are flowing "
+            "or select logs to analyze."
+        )
+
+    # Clean and cap log content to avoid token overflow
+    lines = [l.strip() for l in log_content.splitlines() if l.strip()]
+    total_lines = len(lines)
+    sample_lines = lines[:100]  # Analyze up to top 100 lines
+    text_sample = "\n".join(sample_lines)
+
+    system_instructions = (
+        "You are an expert Cloud SRE and Application Reliability AI Agent. "
+        "Analyze the provided application log entries. "
+        "You must structure your response clearly with these exact sections:\n"
+        "Explanation:\n<clear 2-3 sentence executive summary of errors and anomaly patterns detected>\n\n"
+        "Likely Cause:\n<precise technical root cause, e.g. database connection pool exhaustion, downstream 504 timeout, OOM crash>\n\n"
+        "Remediation Steps:\n1. <First actionable step>\n2. <Second actionable step>\n3. <Third actionable step>"
+    )
+
+    prompt = (
+        f"Context: {filter_context}\n"
+        f"Total Log Lines: {total_lines}\n\n"
+        f"Log Telemetry Data:\n{text_sample}\n\n"
+        "Please provide the complete reliability analysis (Explanation, Likely Cause, Remediation Steps)."
+    )
+
+    # 1. Try Azure OpenAI Responses API
+    llm_resp = invoke_azure_responses_api(
+        prompt=prompt,
+        system_instructions=system_instructions,
+        timeout=40,
+    )
+    if llm_resp and len(llm_resp.strip()) > 30:
+        return llm_resp.strip()
+
+    # 2. Smart Deterministic Fallback based on log semantics
+    error_count = sum(1 for l in lines if re.search(r"\b(error|exception|fail|5\d{2}|fatal|crash|refused)\b", l, re.I))
+    warn_count = sum(1 for l in lines if re.search(r"\b(warn|timeout|retry|deprecated)\b", l, re.I))
+
+    # Detect dominant error keywords
+    has_db = any(re.search(r"\b(db|database|sql|connection|pool|deadlock)\b", l, re.I) for l in lines)
+    has_http5xx = any(re.search(r"\b(500|502|503|504|internal server error)\b", l, re.I) for l in lines)
+    has_oom = any(re.search(r"\b(oom|out of memory|heap|memory)\b", l, re.I) for l in lines)
+    has_timeout = any(re.search(r"\b(timeout|timed out|refused)\b", l, re.I) for l in lines)
+
+    if has_oom:
+        likely = "Java/Process memory exhaustion (Out of Memory) causing unhandled crashes."
+        remediation = [
+            "Scale up VM / App Service memory tier and tune max heap size (-Xmx).",
+            "Identify memory-leaking processes from live worker diagnostics.",
+            "Restart the affected worker service container.",
+        ]
+    elif has_db:
+        likely = "Database connection pool exhaustion or database query timeout."
+        remediation = [
+            "Verify database server connectivity, active connection count, and query latency.",
+            "Increase connection pool limits and check for slow/unindexed queries.",
+            "Inspect database failover and replica health status.",
+        ]
+    elif has_http5xx:
+        likely = "Downstream service unresponsiveness or upstream reverse proxy gateway failure."
+        remediation = [
+            "Check downstream dependency health and network ingress latency.",
+            "Review application worker thread availability and restart failing instances.",
+            "Inspect Application Insights traces for detailed 5xx exception stack traces.",
+        ]
+    elif has_timeout:
+        likely = "Network transit latency or downstream socket timeout during service-to-service communication."
+        remediation = [
+            "Check network peering routes and firewall throughput limits.",
+            "Tune HTTP client connect/read timeouts and implement circuit breakers.",
+            "Verify external API availability and SLA response times.",
+        ]
+    elif error_count == 0 and warn_count == 0:
+        return (
+            f"Explanation:\n"
+            f"Analyzed {total_lines} application log lines ({filter_context or 'active live stream'}). "
+            f"Zero critical crash, error, or warning events were detected in this telemetry slice. "
+            f"The application workload is operating smoothly within healthy baseline thresholds.\n\n"
+            f"Likely Cause:\nNormal system runtime and routine background telemetry processing.\n\n"
+            f"Remediation Steps:\n"
+            f"1. Maintain current live telemetry streaming and threshold rules.\n"
+            f"2. Continue periodic log ingestion and health monitoring.\n"
+            f"3. No remediation action required at this time."
+        )
+    else:
+        likely = f"Application level errors detected ({error_count} error occurrences, {warn_count} warnings)."
+        remediation = [
+            "Inspect recent application deployments and configuration diffs.",
+            "Check host infrastructure metrics (CPU, RAM, Disk) for resource contention.",
+            "Enable verbose debug logging for the affected service modules.",
+        ]
+
+    remediation_str = "\n".join([f"{i+1}. {step}" for i, step in enumerate(remediation)])
+
+    return (
+        f"Explanation:\n"
+        f"Analyzed {total_lines} application log lines. Detected {error_count} error events and "
+        f"{warn_count} warning events in the active telemetry window. "
+        f"Errors indicate anomalous service degradation requiring operational attention.\n\n"
+        f"Likely Cause:\n{likely}\n\n"
+        f"Remediation Steps:\n{remediation_str}"
+    )
+

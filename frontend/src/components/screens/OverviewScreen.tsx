@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
+  AlertCircle,
   AlertTriangle,
   ArrowRight,
   Bot,
@@ -33,7 +34,7 @@ import type {
 } from '../../types';
 
 interface OverviewScreenProps {
-  onNavigate: (tab: NavigationTab) => void;
+  onNavigate: (tab: NavigationTab, filter?: { severity?: string; keyword?: string; provider?: string }) => void;
   cpuData: AgentAnalysisResponse | null;
   diskData: AgentAnalysisResponse | null;
   memoryData: AgentAnalysisResponse | null;
@@ -64,103 +65,31 @@ interface LogItem {
   message: string;
 }
 
-const DEFAULT_SAMPLE_LOGS: LogItem[] = [
-  {
-    id: 1,
-    time: '2025-10-28 14:32:17',
-    severity: 'ERROR',
-    resource: 'Azure App Service',
-    message: 'HTTP 500 error returned from /api/checkout. RequestId: 7f3a-92bc-11e0',
-  },
-  {
-    id: 2,
-    time: '2025-10-28 14:28:53',
-    severity: 'WARNING',
-    resource: 'Virtual Machine',
-    message: 'High CPU usage detected (92%) on vm-prod-01.',
-  },
-  {
-    id: 3,
-    time: '2025-10-28 14:24:36',
-    severity: 'ERROR',
-    resource: 'Azure App Service',
-    message: 'Failed to connect to database. Timeout after 30s.',
-  },
-  {
-    id: 4,
-    time: '2025-10-28 14:21:02',
-    severity: 'INFO',
-    resource: 'Azure Monitor',
-    message: 'Log collection completed successfully. 1245 records ingested.',
-  },
-  {
-    id: 5,
-    time: '2025-10-28 14:17:45',
-    severity: 'WARNING',
-    resource: 'Virtual Machine',
-    message: 'Memory usage above 80% on vm-backend-02.',
-  },
-  {
-    id: 6,
-    time: '2025-10-28 14:12:11',
-    severity: 'ERROR',
-    resource: 'Azure App Service',
-    message: 'Application crash detected. Process exited with code 137.',
-  },
-  {
-    id: 7,
-    time: '2025-10-28 14:06:39',
-    severity: 'INFO',
-    resource: 'Azure Monitor',
-    message: 'Diagnostic settings updated for resource group rg-prod.',
-  },
-  {
-    id: 8,
-    time: '2025-10-28 14:03:22',
-    severity: 'WARNING',
-    resource: 'Virtual Machine',
-    message: 'Disk space running low (18% free) on vm-data-01.',
-  },
-  {
-    id: 9,
-    time: '2025-10-28 13:58:17',
-    severity: 'ERROR',
-    resource: 'Azure App Service',
-    message: 'HTTP 502 error from upstream service: inventory-api.',
-  },
-  {
-    id: 10,
-    time: '2025-10-28 13:52:08',
-    severity: 'INFO',
-    resource: 'Azure Monitor',
-    message: 'Alert rule triggered: High error rate (5xx).',
-  },
-];
 
 export const OverviewScreen: React.FC<OverviewScreenProps> = ({
   onNavigate,
   cpuData,
   diskData,
   memoryData,
-  alertsData: _alertsData,
+  alertsData,
   isLoadingAll: _isLoadingAll,
   isCpuLoading: _isCpuLoading,
   isDiskLoading: _isDiskLoading,
   isMemoryLoading: _isMemoryLoading,
-  onRerunAll: _onRerunAll,
+  onRerunAll,
   onRerunCpu: _onRerunCpu,
   onRerunDisk: _onRerunDisk,
   onRerunMemory: _onRerunMemory,
   lastUpdated: _lastUpdated,
 }) => {
   // --- Live Application Logs State ---
-  const [logs, setLogs] = useState<LogItem[]>(DEFAULT_SAMPLE_LOGS);
+  const [logs, setLogs] = useState<LogItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [severityFilter, setSeverityFilter] = useState<'ALL' | 'CRITICAL' | 'ERROR' | 'WARNING' | 'INFO'>('ALL');
+  const [severityFilter, setSeverityFilter] = useState<'ALL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'CRITICAL' | 'ERROR' | 'WARNING' | 'INFO'>('ALL');
   const [resourceFilter, setResourceFilter] = useState<string>('ALL');
   const [isPaused, setIsPaused] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedLogId, setSelectedLogId] = useState<string | number | null>(1);
+  const [selectedLogId, setSelectedLogId] = useState<string | number | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<{
     title: string;
@@ -171,7 +100,91 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
     remediationSteps: string[];
   } | null>(null);
 
+  const [isRefreshingLogs, setIsRefreshingLogs] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
+
+  // Helper to parse log severity
+  const classifySeverity = (raw: string): 'CRITICAL' | 'ERROR' | 'WARNING' | 'INFO' => {
+    const lower = raw.toLowerCase();
+    if (lower.includes('500') || lower.includes('fatal') || lower.includes('oom') || lower.includes('crash')) {
+      return 'CRITICAL';
+    } else if (lower.includes('error') || lower.includes('exception') || lower.includes('fail')) {
+      return 'ERROR';
+    } else if (lower.includes('warn') || lower.includes('timeout')) {
+      return 'WARNING';
+    }
+    return 'INFO';
+  };
+
+  // Helper to parse log resource
+  const classifyResource = (raw: string): 'Azure App Service' | 'Virtual Machine' | 'Azure Monitor' => {
+    const lower = raw.toLowerCase();
+    if (lower.includes('vm') || lower.includes('host') || lower.includes('machine')) {
+      return 'Virtual Machine';
+    } else if (lower.includes('metric') || lower.includes('monitor') || lower.includes('diag')) {
+      return 'Azure Monitor';
+    }
+    return 'Azure App Service';
+  };
+
+  const fetchLiveLogs = useCallback(async () => {
+    try {
+      const data = await apiService.getRecentApplicationLogs('azure', 50);
+      if (data && data.logs && data.logs.length > 0) {
+        const mapped: LogItem[] = data.logs
+          .filter((line) => {
+            const low = line.toLowerCase();
+            return !low.includes('welcome, you are now connected') && !low.includes('connected to log-streaming');
+          })
+          .map((line, idx) => {
+            const tsMatch = line.match(/^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}/);
+            const now = new Date();
+            const defaultTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+              now.getDate()
+            ).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(
+              2,
+              '0'
+            )}:${String(now.getSeconds()).padStart(2, '0')}`;
+            const timeStr = tsMatch ? tsMatch[0].replace('T', ' ') : defaultTime;
+
+            return {
+              id: `live-${Date.now()}-${idx}`,
+              time: timeStr,
+              severity: classifySeverity(line),
+              resource: classifyResource(line),
+              message: line.slice(0, 160),
+            };
+          });
+        setLogs(mapped.reverse());
+      }
+    } catch (err) {
+      console.error('Failed to fetch initial live logs:', err);
+    }
+  }, []);
+
+  // Clear existing logs and fetch fresh logs from service & log stream
+  const handleRefreshLiveLogs = useCallback(async () => {
+    setLogs([]); // Immediately remove current logs
+    setIsRefreshingLogs(true);
+    setCurrentPage(1);
+
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      const url = apiService.getLogStreamUrl('azure');
+      eventSourceRef.current = new EventSource(url);
+    }
+
+    try {
+      await fetchLiveLogs();
+    } finally {
+      setIsRefreshingLogs(false);
+    }
+  }, [fetchLiveLogs]);
+
+  // Fetch initial live logs on mount
+  useEffect(() => {
+    fetchLiveLogs();
+  }, [fetchLiveLogs]);
 
   // Connect to SSE Log Stream if active
   useEffect(() => {
@@ -185,22 +198,14 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
         const raw = event.data;
         if (!raw || raw.startsWith(':')) return;
 
-        let sev: 'CRITICAL' | 'ERROR' | 'WARNING' | 'INFO' = 'INFO';
+        // Ignore Kudu welcome greeting or connection banner
         const lower = raw.toLowerCase();
-        if (lower.includes('500') || lower.includes('fatal') || lower.includes('oom') || lower.includes('crash')) {
-          sev = 'CRITICAL';
-        } else if (lower.includes('error') || lower.includes('exception') || lower.includes('fail')) {
-          sev = 'ERROR';
-        } else if (lower.includes('warn') || lower.includes('timeout')) {
-          sev = 'WARNING';
+        if (lower.includes('welcome, you are now connected') || lower.includes('connected to log-streaming')) {
+          return;
         }
 
-        let res: 'Azure App Service' | 'Virtual Machine' | 'Azure Monitor' = 'Azure App Service';
-        if (lower.includes('vm') || lower.includes('host') || lower.includes('machine')) {
-          res = 'Virtual Machine';
-        } else if (lower.includes('metric') || lower.includes('monitor') || lower.includes('diag')) {
-          res = 'Azure Monitor';
-        }
+        const sev = classifySeverity(raw);
+        const res = classifyResource(raw);
 
         const now = new Date();
         const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
@@ -218,7 +223,7 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
           message: raw.slice(0, 160),
         };
 
-        setLogs((prev) => [newEntry, ...prev.slice(0, 49)]);
+        setLogs((prev) => [newEntry, ...prev.slice(0, 99)]);
       } catch {
         // ignore parse error
       }
@@ -231,8 +236,16 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
 
   // Filter logs
   const filteredLogs = logs.filter((log) => {
-    if (severityFilter !== 'ALL' && log.severity !== severityFilter) {
-      return false;
+    if (severityFilter !== 'ALL') {
+      if (severityFilter === 'HIGH') {
+        if (log.severity !== 'CRITICAL' && log.severity !== 'ERROR') return false;
+      } else if (severityFilter === 'MEDIUM') {
+        if (log.severity !== 'WARNING') return false;
+      } else if (severityFilter === 'LOW') {
+        if (log.severity !== 'INFO') return false;
+      } else if (log.severity !== severityFilter) {
+        return false;
+      }
     }
     if (resourceFilter !== 'ALL' && log.resource !== resourceFilter) {
       return false;
@@ -248,76 +261,116 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
     return true;
   });
 
+  const categoryCounts = logs.reduce(
+    (acc, log) => {
+      if (log.severity === 'CRITICAL' || log.severity === 'ERROR') acc.HIGH++;
+      else if (log.severity === 'WARNING') acc.MEDIUM++;
+      else acc.LOW++;
+      return acc;
+    },
+    { HIGH: 0, MEDIUM: 0, LOW: 0 }
+  );
+
   const pageSize = 10;
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / pageSize));
   const displayedLogs = filteredLogs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  // Trigger AI Log Analysis
-  const handleAnalyzeSelectedLogs = async () => {
+  // Compute live severity from recent 30 live logs
+  const recent30Logs = logs.slice(0, 30);
+  const recentHighCount = recent30Logs.filter(
+    (l) => l.severity === 'CRITICAL' || l.severity === 'ERROR'
+  ).length;
+  const recentMediumCount = recent30Logs.filter((l) => l.severity === 'WARNING').length;
+  const recentLowCount = recent30Logs.filter((l) => l.severity === 'INFO').length;
+
+  const currentLiveSeverity: 'High' | 'Medium' | 'Low' =
+    recentHighCount > 0 ? 'High' : recentMediumCount > 0 ? 'Medium' : 'Low';
+
+  const activeDisplaySeverity = analysisResult?.severity || currentLiveSeverity;
+
+  // Trigger AI Log Analysis on recent live logs & trigger agent VM telemetry
+  const handleAnalyzeLogs = async () => {
     setIsAnalyzing(true);
     try {
-      const selectedLog = logs.find((l) => l.id === selectedLogId) || logs[0];
-      const logText = selectedLog
-        ? `[${selectedLog.time}] [${selectedLog.severity}] ${selectedLog.resource}: ${selectedLog.message}`
-        : 'HTTP 500 error returned from /api/checkout.';
+      // Trigger all VM agents so CPU, Disk, Memory and Alerts reflect current application VM data
+      if (onRerunAll) {
+        onRerunAll();
+      }
+
+      const recentLogs = logs.slice(0, 30);
+      const filteredRecent =
+        severityFilter !== 'ALL'
+          ? recentLogs.filter((l) => {
+              if (severityFilter === 'HIGH') return l.severity === 'CRITICAL' || l.severity === 'ERROR';
+              if (severityFilter === 'MEDIUM') return l.severity === 'WARNING';
+              if (severityFilter === 'LOW') return l.severity === 'INFO';
+              return true;
+            })
+          : recentLogs;
+
+      const logsToAnalyze = filteredRecent.length > 0 ? filteredRecent : recentLogs;
+      const logLines = logsToAnalyze.map(
+        (l) => `[${l.time}] [${l.severity}] ${l.resource}: ${l.message}`
+      );
+      const logText = logLines.length > 0 ? logLines.join('\n') : 'analyze:live:azure';
 
       const res = await apiService.analyzeApplicationLogs({
-        text: `Analyze this critical application log issue: ${logText}`,
+        text: logText,
+        cloudProvider: 'azure',
+        severityFilter: severityFilter !== 'ALL' ? severityFilter : undefined,
       });
 
-      // Parse response into structured card or set default
+      const resp = res.response || '';
+      let explanation = '';
+      let likelyCause = '';
+      const remediationSteps: string[] = [];
+
+      const explMatch = resp.match(/Explanation:\s*([\s\S]*?)(?=Likely Cause:|$)/i);
+      if (explMatch) explanation = explMatch[1].trim();
+
+      const causeMatch = resp.match(/Likely Cause:\s*([\s\S]*?)(?=Remediation Steps:|$)/i);
+      if (causeMatch) likelyCause = causeMatch[1].trim();
+
+      const remMatch = resp.match(/Remediation Steps:\s*([\s\S]*?)$/i);
+      if (remMatch) {
+        const lines = remMatch[1].split('\n');
+        lines.forEach((l) => {
+          const cleaned = l.replace(/^\d+[\.\)]\s*|-\s*/, '').trim();
+          if (cleaned) remediationSteps.push(cleaned);
+        });
+      }
+
+      const hasCrit = logsToAnalyze.some((l) => l.severity === 'CRITICAL' || l.severity === 'ERROR');
+      const hasWarn = logsToAnalyze.some((l) => l.severity === 'WARNING');
+      const targetSeverity: 'High' | 'Medium' | 'Low' = hasCrit ? 'High' : hasWarn ? 'Medium' : 'Low';
+
       setAnalysisResult({
-        title: selectedLog ? selectedLog.message.slice(0, 50) : 'Repeated HTTP 5xx errors on checkout-api',
-        subtitle: `Detected similar errors in the active log telemetry`,
-        severity: selectedLog?.severity === 'CRITICAL' || selectedLog?.severity === 'ERROR' ? 'High' : 'Medium',
-        explanation: res.response?.slice(0, 240) || 'Elevated server errors detected in the current window. The application is returning HTTP 5xx responses, indicating a server-side dependency issue.',
-        likelyCause: 'Downstream dependency timeout or service unresponsiveness.',
-        remediationSteps: [
-          'Inspect dependency latency (e.g., payment-service, inventory-service).',
-          'Validate App Service health and check for recent deployment changes.',
-          'Review Application Insights dependency traces for detailed error context.',
-        ],
+        title: `AI Reliability Analysis (${logsToAnalyze.length} recent logs evaluated)`,
+        subtitle: `Evaluated ${logsToAnalyze.length} live Azure telemetry logs at ${new Date().toLocaleTimeString()}`,
+        severity: targetSeverity,
+        explanation: explanation || resp,
+        likelyCause: likelyCause,
+        remediationSteps: remediationSteps,
       });
-    } catch {
-      // Fallback to rich default
-      setAnalysisResult({
-        title: 'Repeated HTTP 5xx errors on checkout-api',
-        subtitle: 'Detected 12 similar errors in the last 10 minutes',
-        severity: 'High',
-        explanation:
-          'Elevated server errors detected over the last 10 minutes. The application is returning HTTP 5xx responses, indicating a server-side issue.',
-        likelyCause: 'Downstream dependency timeout.',
-        remediationSteps: [
-          'Inspect dependency latency (e.g., payment-service, inventory-service).',
-          'Validate App Service health and check for recent deployment changes.',
-          'Review Application Insights dependency traces for detailed error context.',
-        ],
-      });
+    } catch (err: any) {
+      console.error('Failed to analyze logs:', err);
+      setAnalysisResult(null);
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  // Live Agent metrics (fallback to reference values if offline)
-  const cpuPercent = cpuData?.current_usage_percent ?? 78;
-  const cpuPeak = cpuData?.peak_usage_percent ?? 100;
-  const memPercent = memoryData?.current_usage_percent ?? 64;
-  const diskPercent = diskData?.current_usage_percent ?? 42;
+  // Live Agent metrics: initialize to 0 until analyzed
+  const cpuPercent = cpuData?.current_usage_percent ?? 0;
+  const cpuPeak = cpuData?.peak_usage_percent ?? 0;
+  const memStats = memoryData?.memory_stats;
+  const memPercent = memoryData?.current_usage_percent ?? memStats?.current_percent ?? 0;
+  const diskStats = diskData?.disk_stats;
+  const diskPercent = diskData?.current_usage_percent ?? diskStats?.current_percent ?? 0;
 
-  // Active analysis values
-  const activeAnalysis = analysisResult || {
-    title: 'Repeated HTTP 5xx errors on checkout-api',
-    subtitle: 'Detected 12 similar errors in the last 10 minutes',
-    severity: 'High',
-    explanation:
-      'Elevated server errors detected over the last 10 minutes. The application is returning HTTP 5xx responses, indicating a server-side issue.',
-    likelyCause: 'Downstream dependency timeout.',
-    remediationSteps: [
-      'Inspect dependency latency (e.g., payment-service, inventory-service).',
-      'Validate App Service health and check for recent deployment changes.',
-      'Review Application Insights dependency traces for detailed error context.',
-    ],
-  };
+  // Active analysis values - NO MOCK DATA until "Analyze logs" is executed!
+  const isAnalyzed = analysisResult !== null;
+  const activeAnalysis = analysisResult;
 
   return (
     <div className="space-y-6 pb-12">
@@ -345,9 +398,21 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
           </div>
           <div className="mt-3.5 flex items-center justify-between">
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-foreground tracking-tight">{cpuPercent}%</span>
-              <span className="rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 px-2 py-0.5 text-[11px] font-bold">
-                Warning
+              <span className="text-3xl font-extrabold text-foreground tracking-tight">
+                {cpuData ? `${cpuPercent}%` : '0%'}
+              </span>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                  cpuData
+                    ? cpuPercent >= 70
+                      ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                      : cpuPercent >= 50
+                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                      : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-slate-500/15 text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                {cpuData ? (cpuPercent >= 70 ? 'Critical' : cpuPercent >= 50 ? 'Warning' : 'Healthy') : 'Awaiting Run'}
               </span>
             </div>
             {/* SVG Sparkline */}
@@ -362,7 +427,7 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
             </svg>
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground">
-            Peak {cpuPeak}% · 4 cores
+            {cpuData ? `Peak ${cpuPeak}% · ${cpuData.records?.[0]?.cores ?? 4} cores` : '0% · 4 cores'}
           </p>
         </div>
 
@@ -378,9 +443,21 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
           </div>
           <div className="mt-3.5 flex items-center justify-between">
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-foreground tracking-tight">{memPercent}%</span>
-              <span className="rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 text-[11px] font-bold">
-                Healthy
+              <span className="text-3xl font-extrabold text-foreground tracking-tight">
+                {memoryData ? `${memPercent}%` : '0%'}
+              </span>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                  memoryData
+                    ? memPercent >= 70
+                      ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                      : memPercent >= 50
+                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                      : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-slate-500/15 text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                {memoryData ? (memPercent >= 70 ? 'Warning' : 'Healthy') : 'Awaiting Run'}
               </span>
             </div>
             {/* SVG Sparkline */}
@@ -395,7 +472,7 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
             </svg>
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground">
-            Peak 82% · 8 GB
+            {memStats?.total_gb ? `Used ${memStats.used_gb ?? 0} GB / ${memStats.total_gb} GB` : '0 GB / 0 GB'}
           </p>
         </div>
 
@@ -411,9 +488,21 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
           </div>
           <div className="mt-3.5 flex items-center justify-between">
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-foreground tracking-tight">{diskPercent}%</span>
-              <span className="rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 text-[11px] font-bold">
-                Healthy
+              <span className="text-3xl font-extrabold text-foreground tracking-tight">
+                {diskData ? `${diskPercent}%` : '0%'}
+              </span>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                  diskData
+                    ? diskPercent >= 70
+                      ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                      : diskPercent >= 50
+                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                      : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-slate-500/15 text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                {diskData ? (diskPercent >= 70 ? 'Warning' : 'Healthy') : 'Awaiting Run'}
               </span>
             </div>
             {/* SVG Sparkline */}
@@ -428,7 +517,7 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
             </svg>
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground">
-            Used 52.8 GB / 122.9 GB
+            {diskStats?.total_gb ? `Used ${diskStats.used_gb ?? 0} GB / ${diskStats.total_gb} GB` : '0 GB / 0 GB'}
           </p>
         </div>
 
@@ -444,9 +533,17 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
           </div>
           <div className="mt-3.5 flex items-center justify-between">
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-foreground tracking-tight">12</span>
-              <span className="rounded-full bg-rose-600 text-white px-2 py-0.5 text-[11px] font-bold">
-                4 Critical
+              <span className="text-3xl font-extrabold text-foreground tracking-tight">
+                {alertsData?.total_alerts ?? 0}
+              </span>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                  (alertsData?.total_alerts ?? 0) > 0
+                    ? 'bg-rose-600 text-white'
+                    : 'bg-slate-500/15 text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                {alertsData?.alerts?.filter((a) => a.threshold_level === '100%').length ?? 0} Critical
               </span>
             </div>
             {/* Mini Bar Chart */}
@@ -459,7 +556,7 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
             </div>
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground">
-            8 Warnings · 0 Info
+            {alertsData?.alerts?.filter((a) => a.threshold_level !== '100%').length ?? 0} Warnings · 0 Info
           </p>
         </div>
 
@@ -475,9 +572,17 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
           </div>
           <div className="mt-3.5 flex items-center justify-between">
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-foreground tracking-tight">99.95%</span>
-              <span className="rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 text-[11px] font-bold">
-                Healthy
+              <span className="text-3xl font-extrabold text-foreground tracking-tight">
+                {analysisResult || cpuData ? '100%' : '0%'}
+              </span>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                  analysisResult || cpuData
+                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-slate-500/15 text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                {analysisResult || cpuData ? 'Healthy' : 'Awaiting Run'}
               </span>
             </div>
             {/* SVG Sparkline */}
@@ -492,7 +597,7 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
             </svg>
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground">
-            Last 1 hour
+            {analysisResult || cpuData ? 'Live telemetry evaluated' : 'Awaiting analysis run'}
           </p>
         </div>
       </div>
@@ -526,73 +631,39 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
               />
             </div>
 
-            {/* Severity Pills */}
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => {
-                  setSeverityFilter('ALL');
-                  setCurrentPage(1);
-                }}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
-                  severityFilter === 'ALL'
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                <span>●</span> All
-              </button>
-              <button
-                onClick={() => {
-                  setSeverityFilter('CRITICAL');
-                  setCurrentPage(1);
-                }}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-                  severityFilter === 'CRITICAL'
-                    ? 'bg-red-600 text-white'
-                    : 'text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30'
-                }`}
-              >
-                <span className="text-red-500">●</span> Critical
-              </button>
-              <button
-                onClick={() => {
-                  setSeverityFilter('ERROR');
-                  setCurrentPage(1);
-                }}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-                  severityFilter === 'ERROR'
-                    ? 'bg-rose-600 text-white'
-                    : 'text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30'
-                }`}
-              >
-                <span className="text-rose-500">●</span> Error
-              </button>
-              <button
-                onClick={() => {
-                  setSeverityFilter('WARNING');
-                  setCurrentPage(1);
-                }}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-                  severityFilter === 'WARNING'
-                    ? 'bg-amber-500 text-white'
-                    : 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30'
-                }`}
-              >
-                <span className="text-amber-500">●</span> Warning
-              </button>
-              <button
-                onClick={() => {
-                  setSeverityFilter('INFO');
-                  setCurrentPage(1);
-                }}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-                  severityFilter === 'INFO'
-                    ? 'bg-sky-500 text-white'
-                    : 'text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-950/30'
-                }`}
-              >
-                <span className="text-sky-500">●</span> Info
-              </button>
+            {/* Severity Category Selector Pills (ALL, HIGH, MEDIUM, LOW) */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {[
+                { id: 'ALL', label: 'All', count: logs.length, color: 'bg-blue-600' },
+                { id: 'HIGH', label: 'High', count: categoryCounts.HIGH, color: 'bg-rose-600' },
+                { id: 'MEDIUM', label: 'Medium', count: categoryCounts.MEDIUM, color: 'bg-amber-500' },
+                { id: 'LOW', label: 'Low', count: categoryCounts.LOW, color: 'bg-emerald-600' },
+              ].map((sev) => {
+                const isSelected = severityFilter === sev.id;
+                return (
+                  <button
+                    key={sev.id}
+                    onClick={() => {
+                      setSeverityFilter(sev.id as any);
+                      setCurrentPage(1);
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                      isSelected
+                        ? `${sev.color} text-white shadow-xs`
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <span>●</span> {sev.label}
+                    <span
+                      className={`rounded-full px-1.5 text-[10px] font-mono ${
+                        isSelected ? 'bg-white/25 text-white' : 'bg-slate-200 dark:bg-slate-800 text-foreground'
+                      }`}
+                    >
+                      {sev.count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Resource Selector & Action Buttons */}
@@ -620,11 +691,12 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
               </button>
 
               <button
-                onClick={() => setLogs(DEFAULT_SAMPLE_LOGS)}
-                className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-muted-foreground transition-colors cursor-pointer"
-                title="Refresh log list"
+                onClick={handleRefreshLiveLogs}
+                disabled={isRefreshingLogs}
+                className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-muted-foreground transition-colors cursor-pointer disabled:opacity-50"
+                title="Refresh log list & reconnect stream"
               >
-                <RefreshCw className="w-3 h-3" />
+                <RefreshCw className={`w-3 h-3 ${isRefreshingLogs ? 'animate-spin' : ''}`} />
                 <span>Refresh</span>
               </button>
             </div>
@@ -761,82 +833,129 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
               </span>
             </div>
 
-            {/* Red Alert Callout Card */}
-            <div className="p-3.5 rounded-xl bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/40 flex items-start justify-between gap-3 mb-4">
-              <div className="flex items-start gap-2.5">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-rose-500 text-white mt-0.5">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
-                    {activeAnalysis.title}
-                  </h3>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {activeAnalysis.subtitle}
-                  </p>
-                </div>
-              </div>
-              <span className="rounded-md bg-rose-100 dark:bg-rose-900/40 px-2 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400">
-                {activeAnalysis.severity}
-              </span>
-            </div>
-
-            {/* Explanation Section */}
-            <div className="space-y-3.5 text-xs">
-              <div>
-                <div className="flex items-center gap-1.5 font-bold text-foreground mb-1">
-                  <Lightbulb className="w-3.5 h-3.5 text-blue-500" />
-                  <span>Explanation</span>
-                </div>
-                <p className="text-muted-foreground leading-relaxed pl-5">
-                  {activeAnalysis.explanation}
-                </p>
-              </div>
-
-              {/* Likely Cause Section */}
-              <div>
-                <div className="flex items-center gap-1.5 font-bold text-foreground mb-1">
-                  <Target className="w-3.5 h-3.5 text-blue-500" />
-                  <span>Likely Cause</span>
-                </div>
-                <p className="text-muted-foreground leading-relaxed pl-5">
-                  {activeAnalysis.likelyCause}
-                </p>
-              </div>
-
-              {/* Remediation Steps Section */}
-              <div>
-                <div className="flex items-center gap-1.5 font-bold text-foreground mb-1.5">
-                  <Wrench className="w-3.5 h-3.5 text-blue-500" />
-                  <span>Remediation Steps</span>
-                </div>
-                <div className="space-y-1.5 pl-5">
-                  {activeAnalysis.remediationSteps.map((step, idx) => (
-                    <div key={idx} className="flex items-start gap-2 text-muted-foreground">
-                      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white text-[10px] font-bold mt-0.5">
-                        {idx + 1}
-                      </span>
-                      <span className="leading-snug">{step}</span>
+            {activeAnalysis && (
+              <>
+                {/* Dynamic Severity Badge Card based on recent live logs */}
+                <div
+                  className={`p-3.5 rounded-xl border flex items-start justify-between gap-3 mb-4 transition-all ${
+                    activeAnalysis.severity.toLowerCase() === 'high'
+                      ? 'bg-rose-50/70 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-900/40'
+                      : activeAnalysis.severity.toLowerCase() === 'medium'
+                      ? 'bg-amber-50/70 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-900/40'
+                      : 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200/80 dark:border-emerald-900/40'
+                  }`}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white mt-0.5 ${
+                        activeAnalysis.severity.toLowerCase() === 'high'
+                          ? 'bg-rose-500'
+                          : activeAnalysis.severity.toLowerCase() === 'medium'
+                          ? 'bg-amber-500'
+                          : 'bg-emerald-600'
+                      }`}
+                    >
+                      {activeAnalysis.severity.toLowerCase() === 'high' ? (
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                      ) : activeAnalysis.severity.toLowerCase() === 'medium' ? (
+                        <AlertCircle className="h-3.5 w-3.5" />
+                      ) : (
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      )}
                     </div>
-                  ))}
+                    <div>
+                      <h3 className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
+                        {activeAnalysis.title}
+                      </h3>
+                      {activeAnalysis.subtitle && (
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {activeAnalysis.subtitle}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <span
+                    className={`rounded-md px-2 py-0.5 text-[10px] font-bold text-white shadow-xs ${
+                      activeAnalysis.severity.toLowerCase() === 'high'
+                        ? 'bg-rose-600'
+                        : activeAnalysis.severity.toLowerCase() === 'medium'
+                        ? 'bg-amber-500'
+                        : 'bg-emerald-600'
+                    }`}
+                  >
+                    {activeAnalysis.severity} Severity
+                  </span>
                 </div>
-              </div>
-            </div>
+
+                {/* Explanation Section */}
+                <div className="space-y-3.5 text-xs">
+                  {activeAnalysis.explanation && (
+                    <div>
+                      <div className="flex items-center gap-1.5 font-bold text-foreground mb-1">
+                        <Lightbulb className="w-3.5 h-3.5 text-blue-500" />
+                        <span>Explanation</span>
+                      </div>
+                      <p className="text-muted-foreground leading-relaxed pl-5 whitespace-pre-line">
+                        {activeAnalysis.explanation}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Likely Cause Section */}
+                  {activeAnalysis.likelyCause && (
+                    <div>
+                      <div className="flex items-center gap-1.5 font-bold text-foreground mb-1">
+                        <Target className="w-3.5 h-3.5 text-blue-500" />
+                        <span>Likely Cause</span>
+                      </div>
+                      <p className="text-muted-foreground leading-relaxed pl-5">
+                        {activeAnalysis.likelyCause}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Remediation Steps Section */}
+                  {activeAnalysis.remediationSteps && activeAnalysis.remediationSteps.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-1.5 font-bold text-foreground mb-1.5">
+                        <Wrench className="w-3.5 h-3.5 text-blue-500" />
+                        <span>Remediation Steps</span>
+                      </div>
+                      <div className="space-y-1.5 pl-5">
+                        {activeAnalysis.remediationSteps.map((step, idx) => (
+                          <div key={idx} className="flex items-start gap-2 text-muted-foreground">
+                            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white text-[10px] font-bold mt-0.5">
+                              {idx + 1}
+                            </span>
+                            <span className="leading-snug">{step}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-3 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
             <button
-              onClick={handleAnalyzeSelectedLogs}
+              onClick={handleAnalyzeLogs}
               disabled={isAnalyzing}
               className="flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-xs transition-all disabled:opacity-50 cursor-pointer"
             >
               <Sparkles className={`w-3.5 h-3.5 ${isAnalyzing ? 'animate-spin' : ''}`} />
-              <span>{isAnalyzing ? 'Analyzing...' : 'Analyze selected logs'}</span>
+              <span>{isAnalyzing ? 'Analyzing...' : 'Analyze logs'}</span>
             </button>
 
             <button
-              onClick={() => onNavigate('app-agent')}
+              onClick={() =>
+                onNavigate('app-agent', {
+                  severity: severityFilter !== 'ALL' ? severityFilter : activeDisplaySeverity.toUpperCase(),
+                  provider: 'azure',
+                })
+              }
               className="flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-foreground transition-all cursor-pointer"
             >
               <Eye className="w-3.5 h-3.5 text-muted-foreground" />
@@ -869,14 +988,26 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
                     <p className="text-[10px] text-muted-foreground">Pipeline: Detection → Diagnosis → Remediation</p>
                   </div>
                 </div>
-                <span className="rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 px-2 py-0.5 text-[10px] font-bold">
-                  WARNING
+                <span
+                  className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                    !cpuData
+                      ? 'bg-slate-500/15 text-slate-500 dark:text-slate-400'
+                      : cpuPercent >= 70
+                      ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                      : cpuPercent >= 50
+                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                      : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                  }`}
+                >
+                  {!cpuData ? 'AWAITING RUN' : cpuPercent >= 70 ? 'CRITICAL' : cpuPercent >= 50 ? 'WARNING' : 'HEALTHY'}
                 </span>
               </div>
 
               <div className="mt-4 flex items-center justify-between">
                 <div>
-                  <span className="text-2xl font-black text-foreground">{cpuPercent}%</span>
+                  <span className="text-2xl font-black text-foreground">
+                    {cpuData ? `${cpuPercent}%` : '0%'}
+                  </span>
                   <span className="text-xs text-muted-foreground ml-1.5 font-medium">Current Utilization</span>
                 </div>
                 <svg className="h-5 w-16 text-blue-500" viewBox="0 0 60 20" fill="none">
@@ -886,7 +1017,13 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
 
               {/* Shaded description box */}
               <div className="mt-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
-                CPU utilization is elevated ({cpuPercent}%). Monitor for sustained high usage.
+                {!cpuData
+                  ? 'Agent run pending. Click "Analyze logs" or view details to inspect live VM CPU metrics.'
+                  : cpuPercent >= 70
+                  ? `CPU utilization is critical (${cpuPercent}%). Sustained load detected on VM.`
+                  : cpuPercent >= 50
+                  ? `CPU utilization is elevated (${cpuPercent}%). Monitor for sustained high usage.`
+                  : `CPU utilization is normal (${cpuPercent}%). All cores operating within limits.`}
               </div>
             </div>
 
@@ -912,14 +1049,26 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
                     <p className="text-[10px] text-muted-foreground">Pipeline: Detection → Diagnosis → Remediation</p>
                   </div>
                 </div>
-                <span className="rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 text-[10px] font-bold">
-                  HEALTHY
+                <span
+                  className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                    !diskData
+                      ? 'bg-slate-500/15 text-slate-500 dark:text-slate-400'
+                      : diskPercent >= 70
+                      ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                      : diskPercent >= 50
+                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                      : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                  }`}
+                >
+                  {!diskData ? 'AWAITING RUN' : diskPercent >= 70 ? 'CRITICAL' : diskPercent >= 50 ? 'WARNING' : 'HEALTHY'}
                 </span>
               </div>
 
               <div className="mt-4 flex items-center justify-between">
                 <div>
-                  <span className="text-2xl font-black text-foreground">{diskPercent}%</span>
+                  <span className="text-2xl font-black text-foreground">
+                    {diskData ? `${diskPercent}%` : '0%'}
+                  </span>
                   <span className="text-xs text-muted-foreground ml-1.5 font-medium">Current Utilization</span>
                 </div>
                 <svg className="h-5 w-16 text-indigo-500" viewBox="0 0 60 20" fill="none">
@@ -929,7 +1078,13 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
 
               {/* Shaded description box */}
               <div className="mt-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
-                Disk space running low (18% free) on vm-data-01.
+                {!diskData
+                  ? 'Agent run pending. Click "Analyze logs" or view details to inspect live VM Disk metrics.'
+                  : diskPercent >= 70
+                  ? `Disk utilization is critical (${diskPercent}% used). Immediate disk cleanup recommended.`
+                  : diskPercent >= 50
+                  ? `Disk space running low (${diskPercent}% used, ${diskStats?.free_gb ?? 0} GB free).`
+                  : `Disk space is healthy (${diskPercent}% used, ${diskStats?.free_gb ?? 0} GB available).`}
               </div>
             </div>
 
@@ -955,14 +1110,26 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
                     <p className="text-[10px] text-muted-foreground">Pipeline: Detection → Diagnosis → Remediation</p>
                   </div>
                 </div>
-                <span className="rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 text-[10px] font-bold">
-                  HEALTHY
+                <span
+                  className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                    !memoryData
+                      ? 'bg-slate-500/15 text-slate-500 dark:text-slate-400'
+                      : memPercent >= 70
+                      ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                      : memPercent >= 50
+                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                      : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                  }`}
+                >
+                  {!memoryData ? 'AWAITING RUN' : memPercent >= 70 ? 'CRITICAL' : memPercent >= 50 ? 'WARNING' : 'HEALTHY'}
                 </span>
               </div>
 
               <div className="mt-4 flex items-center justify-between">
                 <div>
-                  <span className="text-2xl font-black text-foreground">{memPercent}%</span>
+                  <span className="text-2xl font-black text-foreground">
+                    {memoryData ? `${memPercent}%` : '0%'}
+                  </span>
                   <span className="text-xs text-muted-foreground ml-1.5 font-medium">Current Utilization</span>
                 </div>
                 <svg className="h-5 w-16 text-emerald-500" viewBox="0 0 60 20" fill="none">
@@ -972,7 +1139,13 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({
 
               {/* Shaded description box */}
               <div className="mt-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
-                Memory usage is within normal range.
+                {!memoryData
+                  ? 'Agent run pending. Click "Analyze logs" or view details to inspect live VM Memory metrics.'
+                  : memPercent >= 70
+                  ? `Memory usage is critical (${memPercent}%). High RAM allocation detected.`
+                  : memPercent >= 50
+                  ? `Memory usage is elevated (${memPercent}%). Monitor resident processes.`
+                  : `Memory usage is within normal range (${memPercent}%, ${memStats?.used_gb ?? 0} GB used).`}
               </div>
             </div>
 

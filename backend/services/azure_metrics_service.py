@@ -40,6 +40,9 @@ class AzureAppServiceMetricsService:
 
         # 1. Try AzureCliCredential
         try:
+            az_bin = r"C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin"
+            if az_bin not in os.environ.get("PATH", ""):
+                os.environ["PATH"] = f"{az_bin};{os.environ.get('PATH', '')}"
             cred = AzureCliCredential()
             token_obj = cred.get_token("https://management.azure.com/.default")
             self._cached_token = token_obj.token
@@ -142,7 +145,7 @@ class AzureAppServiceMetricsService:
                         parsed[name] = {
                             "unit": "MB" if "Memory" in name else unit,
                             "latest": latest_val,
-                            "points": data_points[-12:],
+                            "points": data_points[-60:] if len(data_points) >= 60 else data_points,
                         }
                     return {"status": "success", "source": "azure_monitor", "metrics": parsed}
                 else:
@@ -273,10 +276,20 @@ class AzureAppServiceMetricsService:
             if not rows:
                 return {"status": "empty", "processes": []}
 
-            latest_entry = rows[-1]
-            timestamp = latest_entry[0]
-            pre_content = latest_entry[1]
+            # Iterate backwards to find the latest non-empty snapshot
+            latest_entry = None
+            pre_content = ""
+            for r in reversed(rows):
+                if len(r) >= 2 and len(r[1].strip()) > 30 and "PID" in r[1]:
+                    latest_entry = r
+                    pre_content = r[1]
+                    break
 
+            if not latest_entry:
+                latest_entry = rows[-1]
+                pre_content = latest_entry[1]
+
+            timestamp = latest_entry[0]
             pre_content = re.sub(r"</?PRE>", "", pre_content, flags=re.IGNORECASE)
             lines = [l.strip() for l in pre_content.split("\n") if l.strip()]
 

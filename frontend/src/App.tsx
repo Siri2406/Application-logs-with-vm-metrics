@@ -88,52 +88,10 @@ export function App() {
     setIsDark((prev) => !prev);
   };
 
-  // Initial Load: Run all agents only when first opening the app and cache the responses
+  // Metrics stay at 0 on initial refresh; loaded when user clicks analyze logs or rerun
   useEffect(() => {
-    loadAllAgentsOnFirstOpen();
+    // Intentionally idle on first open: metrics remain 0 until analysis is triggered
   }, []);
-
-  const loadAllAgentsOnFirstOpen = async () => {
-    setIsLoadingAll(true);
-    setIsCpuLoading(true);
-    setIsMemoryLoading(true);
-    setIsDiskLoading(true);
-    setIsAlertsLoading(true);
-
-    try {
-      const [cpu, memory, disk] = await Promise.all([
-        apiService.analyzeCpu(),
-        apiService.analyzeMemory(),
-        apiService.analyzeDisk(),
-      ]);
-      // Read the audit log after all agents have completed their independent
-      // SMTP sends, so newly generated CPU/Disk/Memory alerts are visible.
-      const alerts = await apiService.getEmailAlerts();
-
-      setCpuData(cpu);
-      setMemoryData(memory);
-      setDiskData(disk);
-      setAlertsData(alerts);
-
-      const ts = getTimestampStr();
-      setLastUpdated({
-        cpu: ts,
-        disk: ts,
-        memory: ts,
-        all: ts,
-      });
-      showToast('All monitoring agents initialized and cached.');
-    } catch (err) {
-      console.error('Initial agent loading failed:', err);
-      showToast('Initialized in offline/fallback mock mode.');
-    } finally {
-      setIsLoadingAll(false);
-      setIsCpuLoading(false);
-      setIsMemoryLoading(false);
-      setIsDiskLoading(false);
-      setIsAlertsLoading(false);
-    }
-  };
 
   const showToast = (msg: string) => {
     setStatusToast(msg);
@@ -294,7 +252,12 @@ export function App() {
           {/* 1. Dashboard / Overview Screen */}
           {(activeTab === 'dashboard' || activeTab === 'overview') && (
             <OverviewScreen
-              onNavigate={(tab) => setActiveTab(tab)}
+              onNavigate={(tab, filter) => {
+                if (filter) {
+                  setInitialLogFilter(filter);
+                }
+                setActiveTab(tab);
+              }}
               cpuData={cpuData}
               diskData={diskData}
               memoryData={memoryData}

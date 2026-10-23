@@ -1,8 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Activity,
+  AlertCircle,
+  AlertTriangle,
   Bot,
   Check,
+  CheckCircle2,
   ChevronDown,
   Cloud,
   Filter,
@@ -18,6 +21,25 @@ import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { apiService } from '../../api/service';
 import type { LogStreamStatus, Severity } from '../../types';
+
+export type SeverityCategory = 'HIGH' | 'MEDIUM' | 'LOW';
+
+export function getSeverityCategory(line: string, rawSeverity?: string): SeverityCategory {
+  if (rawSeverity === 'CRITICAL' || rawSeverity === 'ERROR') return 'HIGH';
+  if (rawSeverity === 'WARNING') return 'MEDIUM';
+  if (rawSeverity === 'INFO' || rawSeverity === 'DEBUG') return 'LOW';
+
+  const lower = line.toLowerCase();
+  if (
+    /\b(critical|error|exception|failed|failure|500|fatal|crash|panic|oom|out of memory)\b/i.test(lower)
+  ) {
+    return 'HIGH';
+  }
+  if (/\b(warn|warning|timeout|retry|deprecated)\b/i.test(lower)) {
+    return 'MEDIUM';
+  }
+  return 'LOW';
+}
 
 const SEVERITY_PATTERNS = {
   CRITICAL: /\b(500|out of memory|oom|fatal|panic|crash)\b/i,
@@ -73,6 +95,7 @@ interface LogEntry {
   id: number;
   text: string;
   severity: 'CRITICAL' | 'ERROR' | 'WARNING' | 'INFO' | 'DEBUG';
+  category: SeverityCategory;
   timestamp: Date;
 }
 
@@ -89,6 +112,7 @@ export const LiveLogsScreen: React.FC<LiveLogsScreenProps> = ({ onAnalyzeWithAge
   const [filter, setFilter] = useState('');
   const [severityFilter, setSeverityFilter] = useState<string>('ALL');
   const [autoScroll, setAutoScroll] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [status, setStatus] = useState<LogStreamStatus | null>(null);
 
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -139,10 +163,21 @@ export const LiveLogsScreen: React.FC<LiveLogsScreenProps> = ({ onAnalyzeWithAge
 
     es.onmessage = (event) => {
       const line = event.data;
+      if (!line || line.startsWith(':')) return;
+
+      const lower = line.toLowerCase();
+      if (lower.includes('welcome, you are now connected') || lower.includes('connected to log-streaming')) {
+        return;
+      }
+
+      const rawSeverity = classifyLine(line);
+      const category = getSeverityCategory(line, rawSeverity);
+
       const entry: LogEntry = {
         id: Date.now() + Math.random(),
         text: line,
-        severity: classifyLine(line),
+        severity: rawSeverity,
+        category,
         timestamp: new Date(),
       };
 
@@ -164,9 +199,55 @@ export const LiveLogsScreen: React.FC<LiveLogsScreenProps> = ({ onAnalyzeWithAge
     eventSourceRef.current = es;
   }, [cloudProvider]);
 
-  useEffect(() => {
+  // Clears current logs and fetches fresh logs from the log service & reconnects stream
+  const handleRefreshLogs = useCallback(async () => {
+    // 1. Immediately remove current logs from the screen
+    setLogs([]);
+    pausedLogsRef.current = [];
+    setIsRefreshing(true);
+    setConnecting(true);
+
+    // 2. Close existing EventSource stream
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
+    try {
+      // 3. Fetch latest new logs from log service
+      const data = await apiService.getRecentApplicationLogs(cloudProvider, 50);
+      if (data && data.logs && data.logs.length > 0) {
+        const freshEntries: LogEntry[] = data.logs
+          .filter((line) => {
+            const lower = line.toLowerCase();
+            return !lower.includes('welcome, you are now connected') && !lower.includes('connected to log-streaming');
+          })
+          .map((line, idx) => {
+            const rawSeverity = classifyLine(line);
+            const category = getSeverityCategory(line, rawSeverity);
+            return {
+              id: Date.now() + idx + Math.random(),
+              text: line,
+              severity: rawSeverity,
+              category,
+              timestamp: new Date(),
+            };
+          });
+        setLogs(freshEntries);
+      }
+    } catch (err) {
+      console.error('Failed to fetch new logs on refresh:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+
+    // 4. Re-establish stream connection
     connect();
     fetchStatus();
+  }, [cloudProvider, connect, fetchStatus]);
+
+  useEffect(() => {
+    handleRefreshLogs();
     const statusInterval = setInterval(fetchStatus, 5000);
 
     return () => {
@@ -175,7 +256,7 @@ export const LiveLogsScreen: React.FC<LiveLogsScreenProps> = ({ onAnalyzeWithAge
         eventSourceRef.current.close();
       }
     };
-  }, [connect, fetchStatus]);
+  }, [handleRefreshLogs, fetchStatus]);
 
   useEffect(() => {
     scrollToBottom();
@@ -203,20 +284,133 @@ export const LiveLogsScreen: React.FC<LiveLogsScreenProps> = ({ onAnalyzeWithAge
 
   const filteredLogs = logs.filter((log) => {
     const matchesText = filter ? log.text.toLowerCase().includes(filter.toLowerCase()) : true;
-    const matchesSeverity = severityFilter === 'ALL' || log.severity === severityFilter;
-    return matchesText && matchesSeverity;
+    if (!matchesText) return false;
+    if (severityFilter === 'ALL') return true;
+    if (severityFilter === 'HIGH') {
+      return log.category === 'HIGH' || log.severity === 'CRITICAL' || log.severity === 'ERROR';
+    }
+    if (severityFilter === 'MEDIUM') {
+      return log.category === 'MEDIUM' || log.severity === 'WARNING';
+    }
+    if (severityFilter === 'LOW') {
+      return log.category === 'LOW' || log.severity === 'INFO' || log.severity === 'DEBUG';
+    }
+    return log.severity === severityFilter || log.category === severityFilter;
   });
 
-  const counts = logs.reduce(
+  const categoryCounts = logs.reduce(
     (acc, log) => {
-      acc[log.severity] = (acc[log.severity] || 0) + 1;
+      acc[log.category] = (acc[log.category] || 0) + 1;
       return acc;
     },
-    {} as Record<string, number>
+    { HIGH: 0, MEDIUM: 0, LOW: 0 } as Record<SeverityCategory, number>
   );
 
+  // Determine overall severity based on the recent live logs (last 30 logs)
+  const recentLogs = logs.slice(-30);
+  const recentHighCount = recentLogs.filter(
+    (l) => l.category === 'HIGH' || l.severity === 'CRITICAL' || l.severity === 'ERROR'
+  ).length;
+  const recentMediumCount = recentLogs.filter(
+    (l) => l.category === 'MEDIUM' || l.severity === 'WARNING'
+  ).length;
+  const recentLowCount = recentLogs.filter(
+    (l) => l.category === 'LOW' || l.severity === 'INFO' || l.severity === 'DEBUG'
+  ).length;
+
+  const liveSeverity: SeverityCategory =
+    recentHighCount > 0 ? 'HIGH' : recentMediumCount > 0 ? 'MEDIUM' : 'LOW';
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* 1. Header & Live Severity Badge Card */}
+      <Card
+        className={`p-4 md:p-5 border shadow-sm transition-all ${
+          liveSeverity === 'HIGH'
+            ? 'bg-rose-50/70 dark:bg-rose-950/20 border-rose-300 dark:border-rose-900/60'
+            : liveSeverity === 'MEDIUM'
+            ? 'bg-amber-50/70 dark:bg-amber-950/20 border-amber-300 dark:border-amber-900/60'
+            : 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-900/60'
+        }`}
+      >
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white shadow-md ${
+                liveSeverity === 'HIGH'
+                  ? 'bg-rose-600 shadow-rose-600/30'
+                  : liveSeverity === 'MEDIUM'
+                  ? 'bg-amber-500 shadow-amber-500/30'
+                  : 'bg-emerald-600 shadow-emerald-600/30'
+              }`}
+            >
+              {liveSeverity === 'HIGH' ? (
+                <AlertTriangle className="h-6 w-6" />
+              ) : liveSeverity === 'MEDIUM' ? (
+                <AlertCircle className="h-6 w-6" />
+              ) : (
+                <CheckCircle2 className="h-6 w-6" />
+              )}
+            </div>
+
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-heading text-base font-bold text-foreground">
+                  Application Log Monitoring
+                </span>
+                {/* Particular Severity Badge Card based on recent live logs */}
+                <span
+                  className={`rounded-full px-3 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-white shadow-xs ${
+                    liveSeverity === 'HIGH'
+                      ? 'bg-rose-600'
+                      : liveSeverity === 'MEDIUM'
+                      ? 'bg-amber-500'
+                      : 'bg-emerald-600'
+                  }`}
+                >
+                  {liveSeverity} Severity Stream
+                </span>
+
+                {severityFilter !== 'ALL' && (
+                  <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-bold text-foreground border border-border">
+                    Filtered: {severityFilter} Only ({filteredLogs.length} logs)
+                  </span>
+                )}
+              </div>
+
+              <p className="text-xs text-muted-foreground mt-1">
+                {liveSeverity === 'HIGH'
+                  ? `Critical exceptions or 5xx server errors detected in recent stream (${recentHighCount} event${recentHighCount === 1 ? '' : 's'}). Immediate operational inspection recommended.`
+                  : liveSeverity === 'MEDIUM'
+                  ? `Warning events or timeout retries observed in recent telemetry (${recentMediumCount} warning event${recentMediumCount === 1 ? '' : 's'}).`
+                  : `All recent telemetry indicates healthy operations with 0 error or crash events across ${recentLogs.length} evaluated log events.`}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Recent telemetry breakdown badge */}
+            <div className="flex items-center gap-1.5 text-[11px] font-mono rounded-xl bg-card border border-border px-3 py-1.5 shadow-2xs">
+              <span className="text-muted-foreground font-sans">Recent Window:</span>
+              <span className="text-rose-500 font-bold">{recentHighCount} High</span>
+              <span>·</span>
+              <span className="text-amber-500 font-bold">{recentMediumCount} Med</span>
+              <span>·</span>
+              <span className="text-emerald-500 font-bold">{recentLowCount} Low</span>
+            </div>
+
+            <button
+              onClick={() => onAnalyzeWithAgent(severityFilter, filter, cloudProvider)}
+              className="flex items-center gap-2 rounded-[var(--radius-md)] bg-blue-600 hover:bg-blue-500 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition-all hover:opacity-95 active:scale-98"
+              title="Send current logs & selected severity filter to Agent Diagnosis"
+            >
+              <Bot className="h-4 w-4" />
+              <span>Diagnose {severityFilter !== 'ALL' ? severityFilter : liveSeverity} with Agent</span>
+            </button>
+          </div>
+        </div>
+      </Card>
+
       {/* Top Banner / Stream Control Bar */}
       <Card className="p-4 md:p-6 border-border shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -277,15 +471,6 @@ export const LiveLogsScreen: React.FC<LiveLogsScreenProps> = ({ onAnalyzeWithAge
           {/* Quick Actions */}
           <div className="flex flex-wrap items-center gap-2.5">
             <button
-              onClick={() => onAnalyzeWithAgent(severityFilter, filter, cloudProvider)}
-              className="flex items-center gap-2 rounded-[var(--radius-md)] bg-gradient-to-r from-[var(--primary)] to-[var(--primary-hover)] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:opacity-95 active:scale-98"
-              title="Send current logs & filters to Application Reliability Agent"
-            >
-              <Bot className="h-4 w-4" />
-              Analyze with Agent
-            </button>
-
-            <button
               onClick={togglePause}
               className={`flex items-center gap-1.5 rounded-[var(--radius-md)] border border-border px-3 py-1.5 text-xs font-medium transition-colors ${
                 paused
@@ -315,11 +500,13 @@ export const LiveLogsScreen: React.FC<LiveLogsScreenProps> = ({ onAnalyzeWithAge
             </button>
 
             <button
-              onClick={connect}
-              className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-border bg-card p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              title="Reconnect stream"
+              onClick={handleRefreshLogs}
+              disabled={isRefreshing || connecting}
+              className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer disabled:opacity-50"
+              title="Refresh logs & reconnect stream"
             >
-              <RefreshCw className={`h-4 w-4 ${connecting ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-3.5 w-3.5 ${connecting || isRefreshing ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
             </button>
           </div>
         </div>
@@ -346,28 +533,32 @@ export const LiveLogsScreen: React.FC<LiveLogsScreenProps> = ({ onAnalyzeWithAge
             )}
           </div>
 
-          {/* Severity Pills */}
+          {/* Severity Category Selector Pills (ALL, HIGH, MEDIUM, LOW) */}
           <div className="flex flex-wrap items-center gap-1.5">
-            {['ALL', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'].map((sev) => {
-              const count = sev === 'ALL' ? logs.length : counts[sev] || 0;
-              const isSelected = severityFilter === sev;
+            {[
+              { id: 'ALL', label: 'All Severities', count: logs.length, color: 'bg-blue-600' },
+              { id: 'HIGH', label: 'High', count: categoryCounts.HIGH, color: 'bg-rose-600' },
+              { id: 'MEDIUM', label: 'Medium', count: categoryCounts.MEDIUM, color: 'bg-amber-500' },
+              { id: 'LOW', label: 'Low', count: categoryCounts.LOW, color: 'bg-emerald-600' },
+            ].map((sev) => {
+              const isSelected = severityFilter === sev.id;
               return (
                 <button
-                  key={sev}
-                  onClick={() => setSeverityFilter(sev)}
-                  className={`flex items-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                  key={sev.id}
+                  onClick={() => setSeverityFilter(sev.id)}
+                  className={`flex items-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer ${
                     isSelected
-                      ? 'bg-[var(--primary)] text-white shadow-xs'
+                      ? `${sev.color} text-white shadow-xs`
                       : 'border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
-                  <span>{sev}</span>
+                  <span>{sev.label}</span>
                   <span
-                    className={`rounded-full px-1 text-[10px] font-mono ${
+                    className={`rounded-full px-1.5 text-[10px] font-mono ${
                       isSelected ? 'bg-white/25 text-white' : 'bg-muted text-foreground'
                     }`}
                   >
-                    {count}
+                    {sev.count}
                   </span>
                 </button>
               );

@@ -24,9 +24,10 @@ def analyze_memory_latest_history():
     5. Returns detection, root cause, remediation, and individual remediation plans.
     """
     try:
-        logger.info(f"📥 [Memory Agent] /api/memory/analyze request received! Fetching live VM telemetry from {CURRENT_METRICS_API_URL}...")
+        azure_host = "https://management.azure.com (Azure Monitor & App Service)"
+        logger.info(f"📥 [Memory Agent] /api/memory/analyze request received! Fetching live VM telemetry from {azure_host}...")
         result = process_system_memory_metrics(source=None)
-        result["source_url"] = CURRENT_METRICS_API_URL
+        result["source_url"] = azure_host
         result["source_file"] = None
         logger.info(f"📤 [Memory Agent] Completed! Host: {result.get('hostname')} | Current Memory: {result.get('current_usage_percent')}% | Records: {result.get('total_records_analyzed')}")
         return result

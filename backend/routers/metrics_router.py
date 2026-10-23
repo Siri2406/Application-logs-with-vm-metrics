@@ -31,19 +31,17 @@ class ThresholdRuleUpdate(BaseModel):
 @router.get("/fetch")
 async def trigger_metrics_fetch():
     """
-    Triggers fetching history from http://20.15.164.79:8080/api/history
+    Triggers fetching live telemetry from Azure Monitor / App Service
     and stores it as a timestamped .json file in logs/ (e.g. logs/system_metrics_YYYYMMDD_HHMMSS.json)
     and updates logs/system_metrics_latest.json.
     """
     try:
-        data = fetch_metrics_history()
-        saved_file = store_metrics_json(data)
+        from services.azure_metrics_service import azure_metrics_service
+        azure_data = await azure_metrics_service.get_all_application_metrics(force_refresh=True)
         return {
             "success": True,
-            "message": "Successfully fetched and stored system metrics JSON",
-            "saved_file": str(saved_file),
-            "filename": saved_file.name,
-            "records_count": len(data),
+            "message": "Successfully fetched live Azure application and host telemetry",
+            "telemetry": azure_data,
         }
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to fetch metrics: {str(exc)}")

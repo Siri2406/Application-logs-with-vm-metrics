@@ -1,0 +1,46 @@
+2026-10-23T09:20:09.6948990Z State: Starting, Action: EstablishingSiteNetworks, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: , DetailsLevel: INFO
+2026-10-23T09:20:12.8512778Z State: Starting, Action: StartingSiteContainers, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: , DetailsLevel: INFO
+2026-10-23T09:20:12.8523925Z Container start method called.
+2026-10-23T09:20:12.8543773Z State: Starting, Action: PullingImage, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Pulling image 10.1.0.4:13209/appsvc/python:3.13_20261022.3.tuxprod for miraai-auditsphere-dev., DetailsLevel: INFO
+2026-10-23T09:20:12.8620942Z Establishing network.
+2026-10-23T09:20:12.8628405Z Pulling image: appsvc/python:3.13_20261022.3.tuxprod.
+2026-10-23T09:21:18.9130196Z Image appsvc/python:3.13_20261022.3.tuxprod is pulled from registry 10.1.0.4:13209
+2026-10-23T09:21:18.9169036Z Container is starting.
+2026-10-23T09:21:18.9456793Z State: Starting, Action: MountingVolumes, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Mounting volumes for miraai-auditsphere-dev., DetailsLevel: INFO
+2026-10-23T09:21:18.9463531Z Establishing user namespace if not established already.
+2026-10-23T09:21:18.9537303Z Establishing network if not established already.
+2026-10-23T09:21:18.9542022Z Mounting volumes.
+2026-10-23T09:21:18.9591072Z Nested mountpoint
+2026-10-23T09:21:18.9959421Z Nested mountpoint volatile/logs
+2026-10-23T09:21:19.0159379Z Nested mountpoint
+2026-10-23T09:21:19.2969168Z Nested mountpoint
+2026-10-23T09:21:19.3178022Z Nested mountpoint
+2026-10-23T09:21:19.3876865Z Nested mountpoint
+2026-10-23T09:21:20.5337574Z State: Starting, Action: CreatingContainer, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Finished pulling container image and mounting volumes for miraai-auditsphere-dev. Allocatinng the rest of the container resources to finish container creation., DetailsLevel: INFO
+2026-10-23T09:21:20.5338595Z Creating container.
+2026-10-23T09:21:20.5348183Z Creating pipes for streaming container io.
+2026-10-23T09:21:20.5349176Z Creating stdout named pipe at /podr/container/pipe/2cede594234a_miraai-auditsphere-dev/stdout_f79fc943a95a4acca5179fd8d62950d3.
+2026-10-23T09:21:20.5634732Z Successfully created stdout named pipe at: /podr/container/pipe/2cede594234a_miraai-auditsphere-dev/stdout_f79fc943a95a4acca5179fd8d62950d3.
+2026-10-23T09:21:20.5646551Z Opening named pipe /podr/container/pipe/2cede594234a_miraai-auditsphere-dev/stdout_f79fc943a95a4acca5179fd8d62950d3 for reading in non-blocking mode.
+2026-10-23T09:21:20.5647627Z Successfully opened named pipe: /podr/container/pipe/2cede594234a_miraai-auditsphere-dev/stdout_f79fc943a95a4acca5179fd8d62950d3.
+2026-10-23T09:21:20.5653068Z Successfully removed non-blocking flag from /podr/container/pipe/2cede594234a_miraai-auditsphere-dev/stdout_f79fc943a95a4acca5179fd8d62950d3.
+2026-10-23T09:21:20.6266989Z Creating stderr named pipe at /podr/container/pipe/2cede594234a_miraai-auditsphere-dev/stderr_1b0e2ad30ae748e69103b27abbe9c907.
+2026-10-23T09:21:20.6347406Z Successfully created stderr named pipe at: /podr/container/pipe/2cede594234a_miraai-auditsphere-dev/stderr_1b0e2ad30ae748e69103b27abbe9c907.
+2026-10-23T09:21:20.6350736Z Opening named pipe /podr/container/pipe/2cede594234a_miraai-auditsphere-dev/stderr_1b0e2ad30ae748e69103b27abbe9c907 for reading in non-blocking mode.
+2026-10-23T09:21:20.6352068Z Successfully opened named pipe: /podr/container/pipe/2cede594234a_miraai-auditsphere-dev/stderr_1b0e2ad30ae748e69103b27abbe9c907.
+2026-10-23T09:21:20.6352747Z Successfully removed non-blocking flag from /podr/container/pipe/2cede594234a_miraai-auditsphere-dev/stderr_1b0e2ad30ae748e69103b27abbe9c907.
+2026-10-23T09:21:20.6359350Z Creating container with image: appsvc/python:3.13_20261022.3.tuxprod from registry: 10.1.0.4:13209 and fully qualified image name: 10.1.0.4:13209/appsvc/python:3.13_20261022.3.tuxprod
+2026-10-23T09:21:22.5632207Z Starting container: 2cede594234a_miraai-auditsphere-dev.
+2026-10-23T09:21:22.7001871Z Starting watchers and probes.
+2026-10-23T09:21:22.7129069Z Starting metrics collection.
+2026-10-23T09:21:22.7423457Z Container is running.
+2026-10-23T09:21:22.7424753Z State: Starting, Action: CreatingContainer, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Container miraai-auditsphere-dev successfully created and is running., DetailsLevel: INFO
+2026-10-23T09:21:23.0938414Z Container start method finished after 70241 ms.
+2026-10-23T09:21:23.0940399Z State: Starting, Action: InitiatingSiteWarmUpProbe, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Container miraai-auditsphere-dev successfully created and is running., DetailsLevel: INFO
+2026-10-23T09:21:23.0950411Z State: Starting, Action: WaitingForSiteWarmUpProbeSuccess, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Pinging warmup path to ensure container is ready to receive requests., DetailsLevel: INFO
+2026-10-23T09:23:07.3236297Z Site startup probe succeeded after 104.1184926 seconds.
+2026-10-23T09:23:07.7827641Z State: Starting, Action: WarmUpProbeSucceeded, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Site startup probe succeeded after 104.1184926 seconds., DetailsLevel: INFO
+2026-10-23T09:23:09.4127771Z Site is running with deployment version: 0f3ee76a91b9bf644bb3fd60c9370987404a04ab
+2026-10-23T09:23:09.4396336Z Site started.
+2026-10-23T09:23:09.4411824Z State: Started, Action: None, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Site started at 10/23/2026 09:23:09 (UTC), DetailsLevel: INFO
+2026-10-23T09:23:09.6720628Z Site is running with patch version PYTHON-3.13.17

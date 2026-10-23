@@ -149,8 +149,8 @@ export const MemoryScreen: React.FC<MemoryScreenProps> = ({
               <Layers className="h-4 w-4 text-[var(--primary)]" />
               <span className="text-xs font-semibold text-foreground">Primary RAM Consumption</span>
             </div>
-            <Badge variant={usagePercent > 70 ? 'destructive' : usagePercent > 50 ? 'warning' : 'success'} size="sm">
-              {usagePercent}% IN USE
+            <Badge variant={!data ? 'neutral' : usagePercent > 70 ? 'destructive' : usagePercent > 50 ? 'warning' : 'success'} size="sm">
+              {!data ? 'AWAITING RUN' : `${usagePercent}% IN USE`}
             </Badge>
           </div>
 

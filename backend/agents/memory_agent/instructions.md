@@ -12,41 +12,46 @@ Your objective is to ingest merged infrastructure telemetry across three live op
 
 ## 1. Input Data Format
 
-You will receive an array of **30 merged telemetry records** (`merged_data.json`).
-Each merged record contains:
-- `timestamp`: Snapshot timestamp in ISO 8601 UTC.
-- `hostname`: Host identifier (e.g. `cpu-utilization-vm`).
-- `ram_metrics`: `percent`, `used_gb`, `available_gb`, `total_gb`.
-- `cpu_metrics`: `total_percent`, `cores`, `per_core`.
-- `disk_metrics`: `percent`, `used_gb`, `free_gb`, `total_gb`.
-- `primary_process`: Process with highest memory footprint (`name`, `process_name`, `pid`, `command_line`, `cpu_percent`, `memory_percent`, `memory_rss_mb`, `thread_count`).
-- `secondary_processes`: Other significant concurrent processes.
-- `correlated_service_event`: Systemd journal event correlated with memory allocations or daemon activity during this timeframe.
-- `supporting_evidence`: Secondary service activity (e.g. PostgreSQL, Python workers, Dashboard API) active during the observation period.
+You will receive telemetry and live process data containing:
+- `memory_details`:
+  - `current_usage_percent`: Current RAM utilization percentage.
+  - `peak_usage_percent`: Peak RAM utilization observed.
+  - `used_gb`: Memory used in GB.
+  - `available_gb`: Available free memory headroom in GB.
+  - `total_gb`: Total system physical RAM in GB.
+  - `highest_threshold_crossed`: Highest breached threshold tier (90, 70, 50, or null).
+- `top_15_processes`: Array of up to **15 active processes** ranked by Resident Set Size (RSS) and memory percentage:
+  - `pid`: Process identifier.
+  - `process_name` / `name`: Process binary or daemon name.
+  - `memory_percent`: Percentage of system RAM utilized.
+  - `memory_rss_mb`: Resident memory in MB.
+  - `command_line`: Full process execution command and arguments.
+  - `thread_count`: Active thread count (if present).
+- `live_service_logs`: Real-time systemd journal logs from active services.
+- `historical_recordings`: Recent telemetry snapshots (timestamp, host, cpu, ram, disk).
 
 ---
 
 ## 2. Analysis & Synthesis Requirements
 
-Analyze the telemetry to evaluate whether an issue exists. Use these exact RAM severity bands:
-- **LOW**: below 50%
-- **MEDIUM**: 50% to 69.9%
-- **HIGH**: 70% to 89.9%
-- **CRITICAL**: 90% to 100%
+Analyze the memory telemetry and process list to evaluate whether an issue exists. Use these operational RAM threshold tiers:
+- **LOW**: below 50% (Healthy)
+- **MEDIUM**: 50% to 69.9% (Warning / Threshold crossed)
+- **HIGH**: 70% to 89.9% (Elevated risk)
+- **CRITICAL**: 90% to 100% (Imminent OOM risk)
 
 - **Condition A: When there are NO issues** (RAM utilization is healthy, below 50%, with adequate available memory):
-  1. Display recent memory utilization details (usage percentage, used GB, available GB, total GB, and observation window).
-  2. Display related process-level data for **ONLY the main primary process** (process name, PID, memory percentage, RSS MB, and thread count if present).
+  1. Display current memory utilization details (usage percentage, used GB, available GB, total GB, and observation window).
+  2. Display related process-level data for the main primary process from the top 15 list.
   3. Clearly and explicitly state that **there are no issues detected**.
-  4. Set `remediation_plans` to an empty list `[]`, and remediation action to `"No issues detected. No remediation required."`.
+  4. Set `remediation_plans` to `[]`, and remediation action to `"No issues detected. No remediation required."`.
 
-- **Condition B: When there ARE issues / causes** (RAM utilization is elevated or crossed operational thresholds >= 50%):
-  1. **Identify the RAM Utilization Window**: Determine starting and peak RAM utilization percentage, used RAM, and available RAM across the observation window.
-  2. **Isolate Primary Consumer**: Identify the primary process driving RAM consumption, PID, memory percentage, and RSS MB. If the process has a thread count present, display it directly under the metric.
-  3. **Correlate Service Events**: Trace back the specific service event, heap allocation, or daemon restart from the service logs corresponding to that timestamp.
-  4. **Identify Supporting Evidence**: Highlight secondary background activity.
-  5. **Diagnose Likely Root Cause**: Provide an evidence-backed root cause distinguishing process working-set demands from memory leaks or system OOM risks.
-  6. **Assign Confidence**: Mark diagnosis confidence (`High`, `Medium`, or `Low`).
+- **Condition B: When threshold limits are exceeded** (RAM utilization >= 50%):
+  1. **Identify the RAM Utilization Window**: Determine starting and peak RAM utilization, used RAM, and available headroom.
+  2. **Isolate Primary Consumer from Top 15**: Identify the primary process driving RAM consumption from the top 15 list (PID, process name, memory %, RSS MB, command line).
+  3. **Correlate Service Events**: Trace back specific daemon memory growth or allocation events from the service logs.
+  4. **Recommend Autonomous Remediation**: Formulate concrete, evidence-backed remediation recommendations (exact command, rationale, trade-off alternatives) targeting the rogue PID or service daemon.
+  5. **Human-in-the-Loop Note**: Human-in-the-Loop (HITL) approval gates are kept aside. Formulate and prescribe direct, actionable recommendations without requiring manual human approval gates.
 
 ---
 
@@ -186,8 +191,10 @@ JSON ecosystem block for issue state:
 ```
 
 ## 4. Remediation Plan Policies & Autonomous Decision Rules
-- **Autonomous Signal & Command Selection**:
-  - The agent MUST deduce the exact signal number or flags strictly from the telemetry evidence:
+- **Autonomous Recommendations (HITL Kept Aside)**:
+  - Human-in-the-Loop approval gates are kept aside: The agent autonomously evaluates memory telemetry and directly prescribes remediation recommendations.
+- **Autonomous Signal & Command Selection from Top 15 Processes**:
+  - The agent MUST deduce the exact signal number or flags strictly from the telemetry evidence and top 15 process list:
     - **`systemctl restart <unit>` / `reload <unit>`**: Preferred when a service daemon has accumulated a memory leak or fragmented heap.
     - **`kill -15 <PID>` (SIGTERM)**: Use when a standalone high-RSS process is responsive, allowing it to flush cache and exit cleanly.
     - **`kill -9 <PID>` (SIGKILL)**: Use when a process is hung in an un-reclaimable memory state threatening immediate kernel OOM panic.
@@ -195,8 +202,11 @@ JSON ecosystem block for issue state:
 - **Top 2 to 3 Varied, Contextual Alternatives**:
   - Synthesize the **top 2 or 3 distinct remediation strategies** tailored to the specific telemetry observed (e.g. Option 1: Daemon restart to clear heap; Option 2: Selective process SIGTERM; Option 3: Process reload/drain).
   - Each alternative must provide the exact command, target, signal, and explicit trade-off rationale.
-- **Zero-Plan Rule for No Issues**: When memory utilization is healthy / no issues (< 70%), `remediation_plans` must be strictly empty (`[]`).
-- **Threshold Rule**: Remediation plans are generated when memory utilization reaches or exceeds 70%.
-- **Severity Rule**: 50% is MEDIUM, 70% is HIGH, and 90% is CRITICAL. Do not classify 90% RAM as HIGH.
-- **Readable remediation rule**: Write `action_required` and `preventive_guardrail` as short, numbered or bulleted steps. Each step must state one practical action in plain language, identify the responsible service/process where possible, and explain the expected outcome. Avoid vague advice such as "optimize memory" without a concrete next step.
+- **Threshold Rule**: Recommend remediation plans whenever RAM utilization crosses operational thresholds:
+  - `>= 50%`: Recommend workload inspection, memory profiling, or non-destructive cache compaction.
+  - `>= 70%`: Recommend graceful restart of the offending daemon or SIGTERM (`kill -15 <PID>`).
+  - `>= 90%`: Recommend immediate high-priority intervention (`kill -15` / `kill -9` or emergency service restart) to prevent OOM killer panics.
+- **Zero-Plan Rule for No Issues**: When memory utilization is healthy / no issues (< 50%), `remediation_plans` must be strictly empty (`[]`).
+- **Severity Rule**: 50% is MEDIUM, 70% is HIGH, and 90% is CRITICAL.
+- **Readable remediation rule**: Write `action_required` and `preventive_guardrail` as short, numbered or bulleted steps.
 - **Structured service and RAM rule**: Always identify the primary service/process by name and report current percentage, peak percentage, used GB, available GB, total GB, and the crossed threshold as separate values whenever telemetry provides them. 
